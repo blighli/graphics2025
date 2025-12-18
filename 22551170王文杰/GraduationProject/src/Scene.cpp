@@ -46,7 +46,7 @@ Scene::Scene()
 }
 
 Scene::Scene(std::vector<shape*> model)
-	:inited(false), modified(false), tbo(0), texBuffer(0), bvh_tbo(0), bvh_texBuffer(0)
+	:inited(false), modified(false), tbo(0), texBuffer(0), bvh_tbo(0), bvh_texBuffer(0), models(model)
 {
 	vertices = {
 		1.0f,  1.0f, 0.0f,  // top right
