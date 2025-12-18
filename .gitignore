@@ -248,3 +248,5 @@ __marimo__/
 
 
 x64/
+Debug/
+*.pdb
