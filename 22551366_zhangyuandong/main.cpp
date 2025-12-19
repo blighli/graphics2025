@@ -13,12 +13,12 @@
 // -------------------------- 全局常量与变量 --------------------------
 const unsigned int SCR_WIDTH = 800;
 const unsigned int SCR_HEIGHT = 600;
-const float SPHERE_RADIUS = 1.0f;
+const float BASE_SPHERE_RADIUS = 1.0f; // 基础球体半径（缩放以此为基准）
 
 // 着色器程序ID
 unsigned int shaderProgram;
 
-// 球体VAO/VBO/EBO（共用一套顶点数据，通过model矩阵区分位置）
+// 球体VAO/VBO/EBO（共用一套顶点数据，通过model矩阵区分位置和大小）
 unsigned int sphereVAO, sphereVBO, sphereEBO;
 int sphereIndexCount;
 
@@ -26,22 +26,33 @@ int sphereIndexCount;
 std::vector<unsigned int> textureIDs;
 
 // 矩阵
-glm::mat4 view = glm::lookAt(glm::vec3(0.0f, 0.0f, 8.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+glm::mat4 view = glm::lookAt(glm::vec3(0.0f, 0.0f, 12.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
 glm::mat4 projection = glm::perspective(glm::radians(45.0f), (float)SCR_WIDTH/SCR_HEIGHT, 0.1f, 100.0f);
 
 // 光照参数
-glm::vec3 lightPos(2.0f, 3.0f, 4.0f);
-glm::vec3 lightColor(1.0f, 1.0f, 1.0f);
-glm::vec3 viewPos = glm::vec3(0.0f, 0.0f, 8.0f); // 摄像机位置
+glm::vec3 lightPos(0.0f, 0.0f, 0.0f);
+glm::vec3 lightColor(2.0f, 2.0f, 2.0f);
+glm::vec3 viewPos = glm::vec3(0.0f, 0.0f, 12.0f); // 摄像机位置
 
-// 球体数据结构（存储位置、纹理ID、名称）
+// 球体数据结构（新增缩放因子）
 struct Sphere {
-    glm::vec3 position;
+    glm::vec3 basePosition;    // 基础位置（红球固定原点）
     unsigned int textureID;
     std::string name;
-    Sphere(glm::vec3 pos, unsigned int texID, std::string n) : position(pos), textureID(texID), name(n) {}
+    float orbitRadius;         // 公转半径
+    float orbitSpeed;          // 公转速度（弧度/秒）
+    float currentAngle;        // 当前旋转角度
+    glm::vec3 scaleFactor;     // 缩放因子（x/y/z方向）
+    
+    // 构造函数（新增缩放参数，默认1.0f）
+    Sphere(glm::vec3 pos, unsigned int texID, std::string n, float radius = 0.0f, float speed = 0.0f, glm::vec3 scale = glm::vec3(1.0f)) 
+        : basePosition(pos), textureID(texID), name(n), orbitRadius(radius), orbitSpeed(speed), currentAngle(0.0f), scaleFactor(scale) {}
 };
 std::vector<Sphere> spheres;
+
+// 记录程序运行时间
+float deltaTime = 0.0f;
+float lastFrame = 0.0f;
 
 // -------------------------- 工具函数 --------------------------
 // 检查着色器/程序编译链接错误
@@ -139,6 +150,8 @@ void generateSphere(float radius, int sectors, int stacks) {
 
 // 加载纹理
 unsigned int loadTexture(const char* path) {
+    static int textureCount = 0;
+    textureCount++;
     unsigned int textureID;
     glGenTextures(1, &textureID);
     glBindTexture(GL_TEXTURE_2D, textureID);
@@ -158,26 +171,44 @@ unsigned int loadTexture(const char* path) {
         GLenum format = GL_RGB;
         if (nrChannels == 1) format = GL_RED;
         else if (nrChannels == 4) format = GL_RGBA;
-
         glTexImage2D(GL_TEXTURE_2D, 0, format, width, height, 0, format, GL_UNSIGNED_BYTE, data);
         glGenerateMipmap(GL_TEXTURE_2D);
     } else {
         std::cout << "ERROR::TEXTURE_LOAD_FAILED: " << path << std::endl;
-        // 加载失败时使用默认红色纹理
-        unsigned char defaultData[] = {255, 0, 0}; // 红色像素
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, 1, 1, 0, GL_RGB, GL_UNSIGNED_BYTE, defaultData);
+        // 加载失败时使用对应颜色的默认纹理
+        unsigned char redData[] = {255, 0, 0};       // 红球默认
+        unsigned char blueballData[] = {255, 140, 0}; // 蓝球默认
+        unsigned char greenData[] = {0, 255, 0};     // 绿球默认
+        
+        // ⭐ 如果是第一个纹理，让默认纹理也更亮
+        if (textureCount == 1) {
+            for (int i = 0; i < 3; i++) {
+                int value = redData[i] * 10;
+                redData[i] = (unsigned char)(value > 255 ? 255 : value);
+            }
+        }
+        
+        if (std::string(path).find("blueball") != std::string::npos) {
+            glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, 1, 1, 0, GL_RGB, GL_UNSIGNED_BYTE, blueballData);
+        } else if (std::string(path).find("green") != std::string::npos) {
+            glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, 1, 1, 0, GL_RGB, GL_UNSIGNED_BYTE, greenData);
+        } else {
+            glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, 1, 1, 0, GL_RGB, GL_UNSIGNED_BYTE, redData);
+        }
     }
     stbi_image_free(data);
     return textureID;
 }
 
-// 射线与球体相交检测
+// 射线与球体相交检测（适配缩放后的球体大小）
 bool raySphereIntersect(const glm::vec3& rayOrigin, const glm::vec3& rayDir, 
-                        const glm::vec3& sphereCenter, float sphereRadius) {
+                        const glm::vec3& sphereCenter, const glm::vec3& scaleFactor) {
+    // 实际球体半径 = 基础半径 * 缩放因子（取x方向，假设均匀缩放）
+    float actualRadius = BASE_SPHERE_RADIUS * scaleFactor.x;
     glm::vec3 oc = rayOrigin - sphereCenter;
     float a = glm::dot(rayDir, rayDir);
     float b = 2.0f * glm::dot(oc, rayDir);
-    float c = glm::dot(oc, oc) - sphereRadius * sphereRadius;
+    float c = glm::dot(oc, oc) - actualRadius * actualRadius;
     float discriminant = b * b - 4 * a * c;
     return discriminant > 0;
 }
@@ -194,22 +225,29 @@ void processInput(GLFWwindow* window) {
     if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
         glfwSetWindowShouldClose(window, true);
     
-    // 摄像机移动（W/A/S/D）
-    float cameraSpeed = 0.05f;
-    if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
-        viewPos += cameraSpeed * glm::normalize(glm::vec3(view[0][2], view[1][2], view[2][2]));
-    if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
-        viewPos -= cameraSpeed * glm::normalize(glm::vec3(view[0][2], view[1][2], view[2][2]));
-    if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
-        viewPos -= glm::normalize(glm::cross(glm::vec3(view[0][2], view[1][2], view[2][2]), glm::vec3(0,1,0))) * cameraSpeed;
-    if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
-        viewPos += glm::normalize(glm::cross(glm::vec3(view[0][2], view[1][2], view[2][2]), glm::vec3(0,1,0))) * cameraSpeed;
+    float cameraSpeed = 2.0f * deltaTime; // 使用deltaTime保证帧率无关的移动速度
+    glm::vec3 cameraFront = glm::normalize(glm::vec3(0.0f, 0.0f, 0.0f) - viewPos);
+    glm::vec3 cameraRight = glm::normalize(glm::cross(cameraFront, glm::vec3(0.0f, 1.0f, 0.0f)));
     
+    // 摄像机移动控制
+    if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
+        viewPos += cameraSpeed * cameraFront;
+    if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
+        viewPos -= cameraSpeed * cameraFront;
+    if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
+        viewPos -= cameraSpeed * cameraRight;
+    if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
+        viewPos += cameraSpeed * cameraRight;
+    if (glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS)
+        viewPos += cameraSpeed * glm::vec3(0.0f, 1.0f, 0.0f);
+    if (glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS)
+        viewPos -= cameraSpeed * glm::vec3(0.0f, 1.0f, 0.0f);
+
     // 更新视图矩阵
     view = glm::lookAt(viewPos, glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
 }
 
-// 鼠标点击回调（检测选中球体）
+// 鼠标点击回调（适配缩放后的球体检测）
 void mouseButtonCallback(GLFWwindow* window, int button, int action, int mods) {
     if (button == GLFW_MOUSE_BUTTON_LEFT && action == GLFW_PRESS) {
         double xpos, ypos;
@@ -231,17 +269,30 @@ void mouseButtonCallback(GLFWwindow* window, int button, int action, int mods) {
         // 视图空间转世界空间（逆视图矩阵）
         glm::vec3 rayWorld = glm::normalize(glm::vec3(glm::inverse(view) * rayEye));
 
-        // 检测所有球体
+        // 检测所有球体（动态计算当前位置和大小）
         bool selected = false;
-        for (const auto& sphere : spheres) {
-            if (raySphereIntersect(viewPos, rayWorld, sphere.position, SPHERE_RADIUS)) {
-                std::cout << "select: " << sphere.name << std::endl;
+        for (auto& sphere : spheres) {
+            glm::vec3 currentPos;
+            if (sphere.name == "redball") {
+                currentPos = sphere.basePosition; // 红球固定原点
+            } else {
+                // 计算旋转后的位置
+                currentPos.x = sphere.orbitRadius * cos(sphere.currentAngle);
+                currentPos.z = sphere.orbitRadius * sin(sphere.currentAngle);
+                currentPos.y = 0.0f; // 保持在同一水平面
+            }
+            
+            // 检测时使用缩放后的实际半径
+            if (raySphereIntersect(viewPos, rayWorld, currentPos, sphere.scaleFactor)) {
+                std::cout << "Selected: " << sphere.name 
+                          << " (Position: " << currentPos.x << ", " << currentPos.y << ", " << currentPos.z 
+                          << ")" << std::endl;
                 selected = true;
                 break;
             }
         }
         if (!selected) {
-            std::cout << "noselected" << std::endl;
+            std::cout << "No sphere selected" << std::endl;
         }
     }
 }
@@ -287,7 +338,7 @@ uniform sampler2D texture1;
 
 void main() {
     // 环境光
-    float ambientStrength = 0.2;
+    float ambientStrength = 0.5;
     vec3 ambient = ambientStrength * lightColor;
 
     // 漫反射
@@ -297,10 +348,10 @@ void main() {
     vec3 diffuse = diff * lightColor;
 
     // 镜面反射
-    float specularStrength = 0.5;
+    float specularStrength = 0.0;
     vec3 viewDir = normalize(viewPos - FragPos);
     vec3 reflectDir = reflect(-lightDir, norm);
-    float spec = pow(max(dot(viewDir, reflectDir), 0.0), 32);
+    float spec = max(dot(viewDir, reflectDir), 0.0);
     vec3 specular = specularStrength * spec * lightColor;
 
     // 纹理采样
@@ -321,7 +372,7 @@ int main() {
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 
     // 2. 创建窗口
-    GLFWwindow* window = glfwCreateWindow(SCR_WIDTH, SCR_HEIGHT, "OpenGL Sphere (Light+Texture+Selection)", NULL, NULL);
+    GLFWwindow* window = glfwCreateWindow(SCR_WIDTH, SCR_HEIGHT, "OpenGL Sphere (Custom Size + Orbit)", NULL, NULL);
     if (window == NULL) {
         std::cout << "Failed to create GLFW window" << std::endl;
         glfwTerminate();
@@ -362,27 +413,32 @@ int main() {
     glDeleteShader(fragmentShader);
 
     // 5. 初始化球体和纹理
-    generateSphere(SPHERE_RADIUS, 36, 18); // 高细分球体（36经度，18纬度）
+    generateSphere(BASE_SPHERE_RADIUS, 36, 18); // 高细分球体
     
-    // 加载纹理（替换为你的纹理路径，或使用默认红色纹理）
-    textureIDs.push_back(loadTexture("red_texture.jpg"));  // 球体1纹理
-    textureIDs.push_back(loadTexture("blue_texture.jpg")); // 球体2纹理
-    textureIDs.push_back(loadTexture("green_texture.jpg"));// 球体3纹理
+    // 加载纹理
+    textureIDs.push_back(loadTexture("sun.bmp"));       // 红球纹理
+    textureIDs.push_back(loadTexture("earth.bmp"));// 蓝球纹理
+    textureIDs.push_back(loadTexture("moon.bmp"));     // 绿球纹理
 
-    // 创建多个球体
-    spheres.emplace_back(glm::vec3(-2.5f, 0.0f, 0.0f), textureIDs[0], "redball");
-    spheres.emplace_back(glm::vec3(0.0f, 0.0f, 0.0f), textureIDs[1], "blueball");
-    spheres.emplace_back(glm::vec3(2.5f, 0.0f, 0.0f), textureIDs[2], "greenball");
 
-    // 6. 开启深度测试（必须，否则3D物体渲染错误）
+    spheres.emplace_back(glm::vec3(0.0f, 0.0f, 0.0f), textureIDs[0], "redball", 0.0f, 0.0f, glm::vec3(1.5f));
+    spheres.emplace_back(glm::vec3(0.0f, 0.0f, 0.0f), textureIDs[1], "blueball", 10.0f, 1.0f, glm::vec3(1.0f));
+    spheres.emplace_back(glm::vec3(0.0f, 0.0f, 0.0f), textureIDs[2], "greenball", 2.0f, 3.0f, glm::vec3(0.2f));
+
+    // 6. 开启深度测试
     glEnable(GL_DEPTH_TEST);
 
     // 7. 渲染循环
     while (!glfwWindowShouldClose(window)) {
+        // 计算deltaTime
+        float currentFrame = glfwGetTime();
+        deltaTime = currentFrame - lastFrame;
+        lastFrame = currentFrame;
+
         // 输入处理
         processInput(window);
 
-        // 清除缓冲（颜色+深度）
+        // 清除缓冲
         glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
@@ -396,15 +452,50 @@ int main() {
         glUniformMatrix4fv(glGetUniformLocation(shaderProgram, "view"), 1, GL_FALSE, glm::value_ptr(view));
         glUniformMatrix4fv(glGetUniformLocation(shaderProgram, "projection"), 1, GL_FALSE, glm::value_ptr(projection));
 
-        // 绘制所有球体
+        // 绘制所有球体（应用缩放）
         glBindVertexArray(sphereVAO);
-        for (const auto& sphere : spheres) {
-            // 设置模型矩阵（位置）
+        for (auto& sphere : spheres) {
             glm::mat4 model = glm::mat4(1.0f);
-            model = glm::translate(model, sphere.position);
+            glm::vec3 orbitPos_red;
+            glm::vec3 orbitPos_blue;
+            glm::vec3 orbitPos_green;
+            
+            if (sphere.name == "redball") {
+                // 红球：平移 + 缩放
+                model = glm::translate(model, sphere.basePosition);
+                model = glm::scale(model, sphere.scaleFactor);
+            } 
+            if (sphere.name == "blueball")
+             {
+                // 蓝球/绿球：更新角度 → 平移到轨道位置 → 缩放
+                sphere.currentAngle += sphere.orbitSpeed * deltaTime;
+                if (sphere.currentAngle > 2 * glm::pi<float>()) {
+                    sphere.currentAngle -= 2 * glm::pi<float>();
+                }
+                orbitPos_blue.x = sphere.orbitRadius * cos(sphere.currentAngle);
+                orbitPos_blue.y = 0.0f;
+                orbitPos_blue.z = sphere.orbitRadius * sin(sphere.currentAngle);
+                
+                model = glm::translate(model, orbitPos_blue); // 先平移
+                model = glm::scale(model, sphere.scaleFactor); // 后缩放
+            }
+            if (sphere.name == "greenball")
+             {
+                // 蓝球/绿球：更新角度 → 平移到轨道位置 → 缩放
+                sphere.currentAngle += sphere.orbitSpeed * deltaTime;
+                if (sphere.currentAngle > 2 * glm::pi<float>()) {
+                    sphere.currentAngle -= 2 * glm::pi<float>();
+                }
+                orbitPos_green.x = sphere.orbitRadius * cos(sphere.currentAngle);
+                orbitPos_green.y = 0.0f;
+                orbitPos_green.z = sphere.orbitRadius * sin(sphere.currentAngle);
+                
+                model = glm::translate(model, orbitPos_green+orbitPos_blue); // 先平移
+                model = glm::scale(model, sphere.scaleFactor); // 后缩放
+            }
+            
+            // 设置模型矩阵并绘制
             glUniformMatrix4fv(glGetUniformLocation(shaderProgram, "model"), 1, GL_FALSE, glm::value_ptr(model));
-
-            // 绑定纹理并绘制
             glBindTexture(GL_TEXTURE_2D, sphere.textureID);
             glDrawElements(GL_TRIANGLES, sphereIndexCount, GL_UNSIGNED_INT, 0);
         }

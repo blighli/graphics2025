@@ -6,9 +6,9 @@ set(CMAKE_CXX_STANDARD_REQUIRED True)
 enable_testing()
 # 定义所有需要复制的纹理文件列表
 set(TEXTURE_FILES
-    "${CMAKE_SOURCE_DIR}/blue_texture.jpg"
-    "${CMAKE_SOURCE_DIR}/red_texture.jpg"
-    "${CMAKE_SOURCE_DIR}/green_texture.jpg"
+    "${CMAKE_SOURCE_DIR}/sun.bmp"
+    "${CMAKE_SOURCE_DIR}/earth.bmp"
+    "${CMAKE_SOURCE_DIR}/moon.bmp"
 )
 
 # 遍历纹理文件列表，逐个复制到 build 根目录
