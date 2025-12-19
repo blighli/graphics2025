@@ -1656,9 +1656,6 @@
     <ClCompile Include="src\vendor\stb_image\stb_image.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
-    <ClCompile Include="src\Application.cpp">
-      <Filter>源文件</Filter>
-    </ClCompile>
     <ClCompile Include="src\glad.c">
       <Filter>源文件</Filter>
     </ClCompile>
@@ -1699,6 +1696,9 @@
       <Filter>源文件</Filter>
     </ClCompile>
     <ClCompile Include="src\tests\TestRealTimePathTracing.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="src\HW2.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
   </ItemGroup>

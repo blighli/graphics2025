@@ -296,6 +296,8 @@ void Scene::clearData()
 	models.clear();
 	trianglesData.clear();
 	BVHData.clear();
+
+	inited = false;
 }
 
 bool Scene::checkEmpty()
