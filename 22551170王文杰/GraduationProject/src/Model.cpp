@@ -206,6 +206,9 @@ void Model::encodedData(glm::vec3 pos)
             if (data != nullptr)
             {
                 auto& uv = TexData[i];
+                t.c1 = glm::vec3(uv, -1);
+                t.c2 = glm::vec3(uv, -1);
+                t.c3 = glm::vec3(uv, -1);
                 t.baseColor = getTexColor(data, uv, width, height, nrComponents);
             }
             triangles.push_back(t);

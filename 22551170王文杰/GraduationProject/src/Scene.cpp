@@ -130,15 +130,15 @@ void Scene::Draw(Shader& shader)
 		initBVHData();
 
 		// °ó¶¨»º³åÇø
-		myBindBuffer(tbo, texBuffer, trianglesData, 0);
-		myBindBuffer(bvh_tbo, bvh_texBuffer, BVHData, 1);
+		myBindBuffer(tbo, texBuffer, trianglesData, 3);
+		myBindBuffer(bvh_tbo, bvh_texBuffer, BVHData, 4);
 
 		inited = true;
 	}
 
 	shader.Bind();
-	shader.SetUniform1i("triangles", 0);
-	shader.SetUniform1i("bvh", 1);
+	shader.SetUniform1i("triangles", 3);
+	shader.SetUniform1i("bvh", 4);
 
 	glBindVertexArray(VAO);
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);

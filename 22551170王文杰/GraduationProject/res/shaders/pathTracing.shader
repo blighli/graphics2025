@@ -25,7 +25,7 @@ out vec4 FragColor;
 in vec2 screenCoord;
 in vec3 pix;
 
-#define TRIANGLE_SIEZ 12
+#define TRIANGLE_SIEZ 15
 #define BVHNODE_SIZE 4
 #define INF 114514
 #define PI 3.1415926535859
@@ -50,11 +50,14 @@ struct Material {
 	float clearcoatGloss;
 	float refractive;
 	float refraRatio;
+
+	uint texid;
 };
 
 struct Triangle {
 	vec3 p1, p2, p3;
 	vec3 n1, n2, n3;
+	vec2 uv1, uv2, uv3;
 };
 
 struct Ray {
@@ -71,6 +74,7 @@ struct HitResult {
 	vec3 normal;
 	vec3 viewDir;
 	Material material;
+	vec2 texCoord;
 };
 
 struct Camera
@@ -95,11 +99,26 @@ uniform Camera camera;
 uniform samplerBuffer triangles;
 uniform samplerBuffer bvh;
 uniform int frameCount;
-uniform sampler2D lastFrame;
+
+uniform sampler2D textures[3];
+// uniform sampler2D sun;
+// uniform sampler2D earth;
+// uniform sampler2D moon;
 
 uniform int width;
 uniform int height;
 
+
+// sampler2D getTexture(uint idx)
+// {
+// 	return textures[idx];
+
+// 	if(idx == uint(0))
+// 		return sun;
+// 	else if(idx == uint(1))
+// 		return earth;
+// 	return moon;
+// }
 
 // ============= funcion ==================
 //=========================== Random =======================
@@ -438,6 +457,18 @@ Triangle getTriangle(int i) {
 	res.n2 = texelFetch(triangles, offset + 4).xyz;
 	res.n3 = texelFetch(triangles, offset + 5).xyz;
 
+	res.uv1 = texelFetch(triangles, offset + 6).xy;
+	res.uv2 = texelFetch(triangles, offset + 7).xy;
+	res.uv3 = texelFetch(triangles, offset + 8).xy;
+
+	// res.uv1.x *= textureX;
+	// res.uv2.x *= textureX;
+	// res.uv3.x *= textureX;
+		 
+	// res.uv1.y *= textureY;
+	// res.uv2.y *= textureY;
+	// res.uv3.y *= textureY;
+
 	return res;
 }
 
@@ -445,12 +476,12 @@ Material getMaterial(int i) {
 	int offset = i * TRIANGLE_SIEZ;
 	Material res;
 
-	res.emissive = texelFetch(triangles, offset + 6).xyz;
-	res.baseColor = texelFetch(triangles, offset + 7).xyz;
-	vec3 param1 = texelFetch(triangles, offset + 8).xyz;
-	vec3 param2 = texelFetch(triangles, offset + 9).xyz;
-	vec3 param3 = texelFetch(triangles, offset + 10).xyz;
-	vec3 param4 = texelFetch(triangles, offset + 11).xyz;
+	res.emissive = texelFetch(triangles, offset + 9).xyz;
+	res.baseColor = texelFetch(triangles, offset + 10).xyz;
+	vec3 param1 = texelFetch(triangles, offset + 11).xyz;
+	vec3 param2 = texelFetch(triangles, offset + 12).xyz;
+	vec3 param3 = texelFetch(triangles, offset + 13).xyz;
+	vec3 param4 = texelFetch(triangles, offset + 14).xyz;
 
 	res.subsurface = param1.x;
 	res.roughness = param1.y;
@@ -467,6 +498,8 @@ Material getMaterial(int i) {
 	res.clearcoatGloss = param4.x;
 	res.refractive = param4.y;
 	res.refraRatio = param4.z;
+
+	res.texid = uint(texelFetch(triangles, offset + 6).z);
 
 	return res;
 }
@@ -523,11 +556,24 @@ HitResult HitTriangle(Triangle t, Ray ray)
 		res.normal = N;
 
 		//法线插值
-		float alpha = (-(P.x - p2.x) * (p3.y - p2.y) + (P.y - p2.y) * (p3.x - p2.x)) / (-(p1.x - p2.x - 0.00005) * (p3.y - p2.y + 0.00005) + (p1.y - p2.y + 0.00005) * (p3.x - p2.x + 0.00005));
-		float beta = (-(P.x - p3.x) * (p1.y - p3.y) + (P.y - p3.y) * (p1.x - p3.x)) / (-(p2.x - p3.x - 0.00005) * (p1.y - p3.y + 0.00005) + (p2.y - p3.y + 0.00005) * (p1.x - p3.x + 0.00005));
+		// float alpha = (-(P.x - p2.x) * (p3.y - p2.y) + (P.y - p2.y) * (p3.x - p2.x)) / (-(p1.x - p2.x - 0.00005) * (p3.y - p2.y + 0.00005) + (p1.y - p2.y + 0.00005) * (p3.x - p2.x + 0.00005));
+		// float beta = (-(P.x - p3.x) * (p1.y - p3.y) + (P.y - p3.y) * (p1.x - p3.x)) / (-(p2.x - p3.x - 0.00005) * (p1.y - p3.y + 0.00005) + (p2.y - p3.y + 0.00005) * (p1.x - p3.x + 0.00005));
+		// float gama = 1.0 - alpha - beta;
+
+		float alpha = (-(P.x - p2.x) * (p3.y - p2.y) + (P.y - p2.y) * (p3.x - p2.x)) / 
+			(-(p1.x - p2.x) * (p3.y - p2.y) + (p1.y - p2.y) * (p3.x - p2.x));
+              
+		float beta = (-(P.x - p3.x) * (p1.y - p3.y) + (P.y - p3.y) * (p1.x - p3.x)) / 
+             (-(p2.x - p3.x) * (p1.y - p3.y) + (p2.y - p3.y) * (p1.x - p3.x));
+             
 		float gama = 1.0 - alpha - beta;
+
 		vec3 finalNormal = normalize(alpha * t.n1 + beta * t.n2 + gama * t.n3);
 		res.normal = res.isInside ? -finalNormal : finalNormal;
+
+		// 纹理坐标插值
+		vec2 texCoord = alpha * t.uv1 + beta * t.uv2 + gama * t.uv3;
+		res.texCoord = texCoord;
 	}
 
 	return res;
@@ -848,7 +894,7 @@ float getPDF_Specular(vec3 V, vec3 N, vec3 L, in Material material)
 	return pdf;
 }
 
-vec3 Disney_BRDF(vec3 V, vec3 N, vec3 L, in Material material)
+vec3 Disney_BRDF(vec3 V, vec3 N, vec3 L, in Material material, in vec2 texCoord)
 {
 	float NdotL = dot(N, L);
 	float NdotV = dot(N, V);
@@ -858,8 +904,14 @@ vec3 Disney_BRDF(vec3 V, vec3 N, vec3 L, in Material material)
 	vec3 H = normalize(L + V);
 	float NdotH = dot(N, H);
 	float LdotH = dot(L, H);
+
+	vec3 baseColor = material.baseColor;
 	
-	vec3 Cdlin = mon2lin(material.baseColor);
+	if(material.texid >= uint(0))
+		baseColor = texture(textures[material.texid], texCoord).rgb;
+		//baseColor = texture(getTexture(material.texid), texCoord).rgb;
+
+	vec3 Cdlin = mon2lin(baseColor);
 
 	// diffuse
 	float Fd90 = 0.5 + 2.0 * material.roughness * LdotH * LdotH;
@@ -905,7 +957,7 @@ vec3 Disney_BRDF(vec3 V, vec3 N, vec3 L, in Material material)
 	return diffuse + specular + clearcoat;
 }
 
-vec3 Disney_BRDF_Clearcoat(vec3 V, vec3 N, vec3 L, in Material material)
+vec3 Disney_BRDF_Clearcoat(vec3 V, vec3 N, vec3 L, in Material material, in vec2 texCoord)
 {
 	float NdotL = dot(N, L);
 	float NdotV = dot(N, V);
@@ -916,7 +968,12 @@ vec3 Disney_BRDF_Clearcoat(vec3 V, vec3 N, vec3 L, in Material material)
 	float NdotH = dot(N, H);
 	float LdotH = dot(L, H);
 
-	vec3 Cdlin = mon2lin(material.baseColor);
+	vec3 baseColor = material.baseColor;
+	
+	// if(material.texid >= uint(0))
+	// 	baseColor = texture(textures[material.texid], texCoord).rgb;
+
+	vec3 Cdlin = mon2lin(baseColor);
 
 	// diffuse
 	float Fd90 = 0.5 + 2.0 * material.roughness * LdotH * LdotH;
@@ -942,7 +999,7 @@ vec3 Disney_BRDF_Clearcoat(vec3 V, vec3 N, vec3 L, in Material material)
 	return diffuse + clearcoat;
 }
 
-vec3 Disney_BRDF_Specular(vec3 V, vec3 N, vec3 L, in Material material)
+vec3 Disney_BRDF_Specular(vec3 V, vec3 N, vec3 L, in Material material, in vec2 texCoord)
 {
 	float NdotL = dot(N, L);
 	float NdotV = dot(N, V);
@@ -953,7 +1010,12 @@ vec3 Disney_BRDF_Specular(vec3 V, vec3 N, vec3 L, in Material material)
 	float NdotH = dot(N, H);
 	float LdotH = dot(L, H);
 
-	vec3 Cdlin = mon2lin(material.baseColor);
+	vec3 baseColor = material.baseColor;
+	
+	// if(material.texid >= uint(0))
+	// 	baseColor = texture(textures[material.texid], texCoord).rgb;
+
+	vec3 Cdlin = mon2lin(baseColor);
 
 	// diffuse
 	float Fd90 = 0.5 + 2.0 * material.roughness * LdotH * LdotH;
@@ -986,7 +1048,7 @@ vec3 Disney_BRDF_Specular(vec3 V, vec3 N, vec3 L, in Material material)
 	return diffuse + specular;
 }
 
-vec3 Disney_BRDF_Diffuse(vec3 V, vec3 N, vec3 L, in Material material)
+vec3 Disney_BRDF_Diffuse(vec3 V, vec3 N, vec3 L, in Material material, in vec2 texCoord)
 {
 	float NdotL = dot(N, L);
 	float NdotV = dot(N, V);
@@ -997,7 +1059,12 @@ vec3 Disney_BRDF_Diffuse(vec3 V, vec3 N, vec3 L, in Material material)
 	float NdotH = dot(N, H);
 	float LdotH = dot(L, H);
 
-	vec3 Cdlin = mon2lin(material.baseColor);
+	vec3 baseColor = material.baseColor;
+	
+	// if(material.texid >= uint(0))
+	// 	baseColor = texture(textures[material.texid], texCoord).rgb;
+
+	vec3 Cdlin = mon2lin(baseColor);
 
 	// diffuse
 	float Fd90 = 0.5 + 2.0 * material.roughness * LdotH * LdotH;
@@ -1045,7 +1112,7 @@ vec3 pathTracing(HitResult hit, float RR) {
 		float pdf = 1;
 		
 		L = SampleBRDF(x1, x2, x3, V, N, hit.material);
-		f_r = Disney_BRDF(V, N, L, hit.material);
+		f_r = Disney_BRDF(V, N, L, hit.material, hit.texCoord);
 		pdf = getPDF(V, N, L, hit.material);
 		
 		NdotL = dot(N, L);
@@ -1055,11 +1122,11 @@ vec3 pathTracing(HitResult hit, float RR) {
 			break;
 
 
-		if(abs(rand()) < hit.material.refraRatio)
-		{
-			float eta = lasRefractive / hit.material.refractive;
-			L = L - (1. + eta) * NdotL * N;
-		}
+		// if(abs(rand()) < hit.material.refraRatio)
+		// {
+		// 	float eta = lasRefractive / hit.material.refractive;
+		// 	L = L - (1. + eta) * NdotL * N;
+		// }
 
 		ray.dir = L;
 
@@ -1069,6 +1136,9 @@ vec3 pathTracing(HitResult hit, float RR) {
 		if (!newHit.isHit)
 			break;
 
+		// vec3 bColor = newHit.material.baseColor;
+		// if(newHit.material.texid >= uint(0))
+		// 	bColor = texture(textures[newHit.material.texid], newHit.texCoord).rgb;
 
 		vec3 Le = newHit.material.emissive;
 
@@ -1121,10 +1191,10 @@ vec3 pathTracing_BSDF(HitResult hit, float RR) {
 			break;
 
 
-		if(abs(rand()) < hit.material.refraRatio)
-		{
-			L = L + 2 * NdotL * N;
-		}
+		// if(abs(rand()) < hit.material.refraRatio)
+		// {
+		// 	L = L + 2 * NdotL * N;
+		// }
 
 		ray.dir = L;
 
@@ -1161,21 +1231,35 @@ void main()
 {
 	float u = screenCoord.x;
 	float v = screenCoord.y;
+	int spp = 16;
 	
 	Ray ray = CameraGetRay(camera, screenCoord);
 	
 	HitResult r = HitBVH(ray);
 
-	vec3 color = vec3(0);	
+	vec3 color = vec3(0);
+	vec3 bColor = vec3(0);
 	
 	if (r.isHit)
 	{	
-		color = pathTracing(r, 0.8);
+		bColor = r.material.baseColor;
+
+		if(r.material.texid >= uint(0))
+			bColor = texture(textures[r.material.texid], r.texCoord).rgb;
+			//bColor = texture(getTexture(r.material.texid), r.texCoord).rgb;
+		
+		for(int i = 0; i < spp; i++)
+		{
+			color += pathTracing(r, 0.8);		
+		}
+
 	}
-	color += r.material.emissive;
-	// 与上一拟合
-	vec3 lastColor = texture(lastFrame, screenCoord.xy).rgb;
-	color = mix(lastColor, color, 1.0 / float(frameCount + 1));
+
+	color = color / float(spp);
+	color += r.material.emissive * bColor;
+	// color += r.material.emissive;
 
 	FragColor = vec4(color, 1);
+	//FragColor =  vec4(bColor, 1);
+	FragColor = pow(FragColor, vec4(1.0/2.2));
 }

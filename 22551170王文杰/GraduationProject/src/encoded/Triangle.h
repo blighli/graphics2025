@@ -30,13 +30,13 @@ struct Material_encoded {
 struct Triangle_encoded {
     glm::vec3 p1, p2, p3;
     glm::vec3 n1, n2, n3;
+	glm::vec3 c1, c2, c3;	// uv 坐标 （u1, v1, texid)
     glm::vec3 emissive;      // 自发光参数
     glm::vec3 baseColor;     // 颜色
     glm::vec3 param1;        // subsurface roughness metallic
 	glm::vec3 param2;		//specular specularTine anisotropic
 	glm::vec3 param3;		//sheen sheenTine clearcoat
-	glm::vec3 param4;		//clearcoatGloss 折射 xxx
-
+	glm::vec3 param4;		//clearcoatGloss 折射 折射比例
     bool operator == (Triangle_encoded& t);
 };
 

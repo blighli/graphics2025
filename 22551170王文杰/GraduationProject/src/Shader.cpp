@@ -69,6 +69,16 @@ void Shader::SetUniform2uiv(const std::string& name, const glm::uvec2& value)
 	glUniform2uiv(GetUniformLocation(name), 1, &value[0]);
 }
 
+void Shader::SetUniform3uiv(const std::string& name, const glm::uvec3& value)
+{
+	glUniform3uiv(GetUniformLocation(name), 1, &value[0]);
+}
+
+void Shader::SetUniform3iv(const std::string& name, const glm::ivec3& value)
+{
+	glUniform3iv(GetUniformLocation(name), 1, &value[0]);
+}
+
 ShaderProgramSource Shader::ParseShader(const std::string& filepath)
 {	
 	std::ifstream stream(filepath);

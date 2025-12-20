@@ -1721,5 +1721,8 @@
     <Image Include="res\obj\HuTao\tex\hair.png">
       <Filter>资源文件</Filter>
     </Image>
+    <Image Include="..\..\..\..\..\download\edge\sun.bmp">
+      <Filter>资源文件</Filter>
+    </Image>
   </ItemGroup>
 </Project>

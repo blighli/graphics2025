@@ -157,6 +157,10 @@ void Sphere::encodedData()
         t.n2 = normals[Pos1];
         t.n3 = normals[Pos2];
 
+        t.c1 = glm::vec3(uv[Pos0], texid);
+        t.c2 = glm::vec3(uv[Pos1], texid);
+        t.c3 = glm::vec3(uv[Pos2], texid);
+
         t.emissive = material.emissive;
         t.baseColor = material.color;
         t.param1 = glm::vec3(material.subsurface, material.roughness, material.metallic);
@@ -168,8 +172,8 @@ void Sphere::encodedData()
     }
 }
 
-Sphere::Sphere(const glm::vec3 center, const float R, const glm::vec3 color)
-    :center(center), R(R)
+Sphere::Sphere(const glm::vec3 center, const float R, const glm::vec3 color, unsigned int texid)
+    :center(center), R(R), texid(texid)
 {
     material.color = color;
 
@@ -177,63 +181,128 @@ Sphere::Sphere(const glm::vec3 center, const float R, const glm::vec3 color)
     glGenBuffers(1, &VBO);
     glGenBuffers(1, &EBO);
 
-    for (unsigned int x = 0; x <= X_SEGMENTS; ++x)
-    {
-        for (unsigned int y = 0; y <= Y_SEGMENTS; ++y)
-        {
-            float xSegment = (float)x / (float)X_SEGMENTS;
-            float ySegment = (float)y / (float)Y_SEGMENTS;
-            float xPos = std::cos(xSegment * 2.0f * PI) * std::sin(ySegment * PI);
-            float yPos = std::cos(ySegment * PI);
-            float zPos = std::sin(xSegment * 2.0f * PI) * std::sin(ySegment * PI);
+    //for (unsigned int x = 0; x <= X_SEGMENTS; ++x)
+    //{
+    //    for (unsigned int y = 0; y <= Y_SEGMENTS; ++y)
+    //    {
+    //        float xSegment = (float)x / (float)X_SEGMENTS;
+    //        float ySegment = (float)y / (float)Y_SEGMENTS;
+    //        float xPos = std::cos(xSegment * 2.0f * PI) * std::sin(ySegment * PI);
+    //        float yPos = std::cos(ySegment * PI);
+    //        float zPos = std::sin(xSegment * 2.0f * PI) * std::sin(ySegment * PI);
 
-            positions.push_back(R * glm::vec3(xPos, yPos, zPos) + center);
-            //positions.push_back(glm::vec3(xPos, yPos, zPos));
-            uv.push_back(glm::vec2(xSegment, ySegment));
-            normals.push_back(glm::normalize(glm::vec3(xPos, yPos, zPos)));
+    //        positions.push_back(R * glm::vec3(xPos, yPos, zPos) + center);
+    //        //positions.push_back(glm::vec3(xPos, yPos, zPos));
+    //        uv.push_back(glm::vec2(xSegment, 1.0 - ySegment));
+    //        normals.push_back(glm::normalize(glm::vec3(xPos, yPos, zPos)));
+    //    }
+    //}
+
+    //bool oddRow = false;
+    //for (unsigned int y = 0; y < Y_SEGMENTS; ++y)
+    //{
+    //    if (!oddRow) // even rows: y == 0, y == 2; and so on
+    //    {
+    //        for (unsigned int x = 0; x <= X_SEGMENTS; ++x)
+    //        {
+    //            indices.push_back(y * (X_SEGMENTS + 1) + x);
+    //            indices.push_back((y + 1) * (X_SEGMENTS + 1) + x);
+    //        }
+    //    }
+    //    else
+    //    {
+    //        for (int x = X_SEGMENTS; x >= 0; --x)
+    //        {
+    //            indices.push_back((y + 1) * (X_SEGMENTS + 1) + x);
+    //            indices.push_back(y * (X_SEGMENTS + 1) + x);
+    //        }
+    //    }
+    //    oddRow = !oddRow;
+    //}
+    //unsigned int indexCount = static_cast<unsigned int>(indices.size());
+
+    //for (unsigned int i = 0; i < positions.size(); ++i)
+    //{
+    //    data.push_back(positions[i].x);
+    //    data.push_back(positions[i].y);
+    //    data.push_back(positions[i].z);
+    //    if (normals.size() > 0)
+    //    {
+    //        data.push_back(normals[i].x);
+    //        data.push_back(normals[i].y);
+    //        data.push_back(normals[i].z);
+    //    }
+
+    //    if (uv.size() > 0)
+    //    {
+    //        data.push_back(uv[i].x);
+    //        data.push_back(uv[i].y);
+    //    }
+    //}
+
+    unsigned int numSub = 32;
+    
+    glm::vec3 topPos = { 0, 1, 0 }, topN = { 0, 1, 0 };
+    glm::vec2 topUV = glm::vec2(0);
+
+
+    glm::vec3 bottomPos = { 0, -1, 0 }, bN = { 0, -1, 0 };
+    glm::vec2 bottomUV = { 0, 1 };
+
+    positions.push_back(R * topPos + center);
+    normals.push_back(topN);
+    uv.push_back(topUV);
+    constexpr float PI = pi<float>();
+    float phiStep = PI / numSub;
+    float thetaStep = PI / numSub;
+
+    for (int i = 1; i <= numSub - 1; i++)
+    {
+        float phi = i * phiStep;
+
+        for (int j = 0; j <= numSub; j++)
+        {
+            float theta = j * thetaStep;
+
+            glm::vec3 p = { sin(phi) * cos(theta) , cos(phi) , sin(phi) * sin(theta) };
+
+            positions.push_back(R * p + center);
+            normals.push_back(p);
+            uv.push_back(glm::vec2(theta / (2 * PI), phi / PI));
         }
     }
 
-    bool oddRow = false;
-    for (unsigned int y = 0; y < Y_SEGMENTS; ++y)
+    positions.push_back(R * bottomPos + center);
+    normals.push_back(bN);
+    uv.push_back(bottomUV);
+
+
+    for (int i = 1; i <= numSub; i++)
     {
-        if (!oddRow) // even rows: y == 0, y == 2; and so on
-        {
-            for (unsigned int x = 0; x <= X_SEGMENTS; ++x)
-            {
-                indices.push_back(y * (X_SEGMENTS + 1) + x);
-                indices.push_back((y + 1) * (X_SEGMENTS + 1) + x);
-            }
-        }
-        else
-        {
-            for (int x = X_SEGMENTS; x >= 0; --x)
-            {
-                indices.push_back((y + 1) * (X_SEGMENTS + 1) + x);
-                indices.push_back(y * (X_SEGMENTS + 1) + x);
-            }
-        }
-        oddRow = !oddRow;
+        indices.push_back(0);
+        indices.push_back(i + 1);
+        indices.push_back(i);
     }
-    unsigned int indexCount = static_cast<unsigned int>(indices.size());
 
-    for (unsigned int i = 0; i < positions.size(); ++i)
+    unsigned int baseIdx = 1, ringVertexCnt = numSub + 1;
+    for (int i = 0; i < numSub - 2; i++)
     {
-        data.push_back(positions[i].x);
-        data.push_back(positions[i].y);
-        data.push_back(positions[i].z);
-        if (normals.size() > 0)
+        for (int j = 0; j < numSub; j++)
         {
-            data.push_back(normals[i].x);
-            data.push_back(normals[i].y);
-            data.push_back(normals[i].z);
+            indices.push_back(baseIdx + i * ringVertexCnt + j);
+            indices.push_back(baseIdx + i * ringVertexCnt + j + 1);
+            indices.push_back(baseIdx + (i + 1) * ringVertexCnt + j + 1);
         }
+    }
 
-        if (uv.size() > 0)
-        {
-            data.push_back(uv[i].x);
-            data.push_back(uv[i].y);
-        }
+    unsigned int sourcePoleIndex = positions.size() / 3;
+    baseIdx = sourcePoleIndex - ringVertexCnt;
+
+    for (int i = 0; i < numSub; i++)
+    {
+        indices.push_back(sourcePoleIndex);
+        indices.push_back(baseIdx + i);
+        indices.push_back(baseIdx + i + 1);
     }
 
     // 三角形数据传入
@@ -258,8 +327,8 @@ Sphere::Sphere(const glm::vec3 center, const float R, const glm::vec3 color)
     glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, stride, (void*)(6 * sizeof(float)));
 }
 
-Sphere::Sphere(const glm::vec3 center, const float R, Material material)
-    :center(center), R(R), material(material)
+Sphere::Sphere(const glm::vec3 center, const float R, Material material, unsigned int texid)
+    :center(center), R(R), material(material), texid(texid)
 {
     glGenVertexArrays(1, &VAO);
     glGenBuffers(1, &VBO);
@@ -399,7 +468,7 @@ void Sphere::Draw(Shader& shader)
     unsigned int indexCount = static_cast<unsigned int>(indices.size());
     shader.Bind();
     glBindVertexArray(VAO);
-    glDrawElements(GL_TRIANGLE_STRIP, indexCount, GL_UNSIGNED_INT, 0);
+    glDrawElements(GL_TRIANGLES, indexCount, GL_UNSIGNED_INT, 0);
 }
 
 void Plane::encodeData()
@@ -416,6 +485,10 @@ void Plane::encodeData()
         t.p3 = points[i + 2];
         
         t.n1 = t.n2 = t.n3 = normal;
+
+        t.c1 = glm::vec3(0);
+        t.c2 = glm::vec3(0);
+        t.c3 = glm::vec3(0);
 
         t.baseColor = materal.color;
         t.emissive = materal.emissive;

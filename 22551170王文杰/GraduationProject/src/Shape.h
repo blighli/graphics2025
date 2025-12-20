@@ -102,6 +102,7 @@ private:
 
 	// 存储三角形面片数据
 	std::vector<Triangle_encoded> triangles; 
+	unsigned int texid;
 
 public:
 	glm::vec3 center;
@@ -112,8 +113,8 @@ private:
 	void encodedData();
 
 public:
-	Sphere(const glm::vec3 center = { 0.0f, 0.0f, 0.0f }, const float R = 0.0f, const glm::vec3 color = { 0.0f, 0.0f, 0.0f });
-	Sphere( const glm::vec3 center, const float R, Material material);
+	Sphere(const glm::vec3 center = { 0.0f, 0.0f, 0.0f }, const float R = 0.0f, const glm::vec3 color = { 0.0f, 0.0f, 0.0f }, unsigned int texid = -1);
+	Sphere( const glm::vec3 center, const float R, Material material, unsigned int texid = -1);
 	~Sphere();
 	
 	void Draw(Shader& shader);

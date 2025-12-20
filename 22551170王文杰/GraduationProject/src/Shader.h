@@ -33,6 +33,9 @@ public:
 	void SetUniform3fv(const std::string& name, const glm::vec3& value);
 	void SetUniform2fv(const std::string& name, const glm::vec2& value);
 	void SetUniform2uiv(const std::string& name, const glm::uvec2& value);
+	void SetUniform3uiv(const std::string& name, const glm::uvec3& value);
+	void SetUniform3iv(const std::string& name, const glm::ivec3& value);
+
 	
 private:
 	ShaderProgramSource ParseShader(const std::string& filepath);
