@@ -18,7 +18,7 @@ LFLAGS =
 OUTPUT	:= output
 
 # define source directory
-SRC		:= src
+SRC		:= src src/scene_func
 
 # define include directory
 INCLUDE	:= include
