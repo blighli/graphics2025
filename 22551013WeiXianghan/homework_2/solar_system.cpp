@@ -198,8 +198,8 @@ int main()
 
     // shaders
     Shader lightingShader(
-        FileSystem::getPath("resources/shaders/5.2.light_casters.vs").c_str(),
-        FileSystem::getPath("resources/shaders/5.2.light_casters.fs").c_str()
+        FileSystem::getPath("resources/shaders/light_casters.vs").c_str(),
+        FileSystem::getPath("resources/shaders/light_casters.fs").c_str()
     );
     // Shader lightCubeShader(
     //     FileSystem::getPath("resources/shaders/5.2.light_cube.vs").c_str(),
@@ -297,7 +297,7 @@ int main()
         //sunModel = glm::translate(sunModel, lightPos);
         sunModel = glm::scale(sunModel, glm::vec3(Scale_sun));
         //加个缓慢的自转
-        float sunSelfRotateAngleSpeed = 0.2f; // 太阳自转角速度
+        float sunSelfRotateAngleSpeed = 0.05f; // 太阳自转角速度
         sunModel = glm::rotate(sunModel, t * sunSelfRotateAngleSpeed, glm::vec3(0, 1, 0));
         lightingShader.setMat4("model", sunModel);
 

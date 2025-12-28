@@ -12,17 +12,18 @@
 2. **坐标轴和地球轨道的显示**：
 
    - 程序绘制了三维空间中的坐标轴（X轴、Y轴、Z轴），以及地球的公转轨道，以便观察物体的相对位置。
-3. **光照与纹理**：
+3. **光照与纹理贴图**：
 
    - 使用了点光源模拟太阳光照，物体表面呈现出漫反射~~、镜面反射~~等光照效果。
    - 对星体进行了纹理贴图。
+   - 通过shader来实现这些功能（resources/shaders/light_caster.vs&fs)
 4. **摄像机控制**：
 
    - 用户可以通过鼠标和键盘自由移动摄像机，观察太阳系的不同角度。
 
    太阳、地球、月球的纹理贴图来取自 https://github.com/rubenandrebarreiro/3d-object-modelling-solar-system/
 
-   采用了https://github.com/JoeyDeVries/LearnOpenGL对OpenGL所做的一些封装，第三方依赖仍使用vcpkg安装。
+   采用了https://github.com/JoeyDeVries/LearnOpenGL对OpenGL所做的一些类封装（include/learnopengl），第三方依赖仍使用vcpkg安装。
 
 ---
 
@@ -31,11 +32,15 @@
 1. 配置说明：
 
    - 确保安装了vcpkg
+
      - git clone https://github.com/microsoft/vcpkg.git
        cd vcpkg; .\bootstrap-vcpkg.bat
      - 将CMakePresets.json中"VCPKG_ROOT": "D:/vcpkg"改为实际的安装位置
-   - cmake --preset=graphics2025 		#会使用vcpkg自动安装所有必要的依赖
-     cmake --build build 				#会在在build\Debug目录生成可执行文件
+   - 在22551013Weixianghan目录下执行
+
+     - cmake --preset=graphics2025 		#会使用vcpkg自动安装所有必要的依赖
+     - cmake --build build 				#在build\Debug目录生成可执行文件
+     - ./build/Debug/solar_system.exe
 2. **操作说明**：
 
    - **摄像机移动**：
@@ -126,4 +131,4 @@
 
 ## 四、总结
 
-该程序通过OpenGL实现了一个简单的太阳系模拟，展示了三维图形学中的基本技术，包括坐标轴绘制、轨道绘制、光照计算和摄像机控制。程序结构清晰，功能完整，适合作为学习OpenGL的入门案例。
+该程序通过OpenGL实现了一个简单的太阳系模拟，展示了三维图形学中的基本技术，包括模型变换、光照计算、纹理贴图、和摄像机控制等。
