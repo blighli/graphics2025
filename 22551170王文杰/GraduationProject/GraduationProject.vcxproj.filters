@@ -1627,6 +1627,8 @@
     <None Include="res\obj\HuTao\HuTao.pmx" />
     <None Include="res\shaders\denoise.shader" />
     <None Include="packages.config" />
+    <None Include="res\shaders\model.shader" />
+    <None Include="res\shaders\simpleLight.shader" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\vendor\glm\detail\glm.cpp">
@@ -1698,7 +1700,7 @@
     <ClCompile Include="src\tests\TestRealTimePathTracing.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
-    <ClCompile Include="src\HW2.cpp">
+    <ClCompile Include="src\HW3.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
   </ItemGroup>

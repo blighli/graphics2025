@@ -33,7 +33,7 @@ void Model::loadModel(const std::string path)
 {
     Assimp::Importer importer;
     //ReadFile(path, 后期处理(不是三角形的变成三角形|y轴翻转))
-    const aiScene* scene = importer.ReadFile(path, aiProcess_Triangulate | aiProcess_FlipUVs);
+    const aiScene* scene = importer.ReadFile(path, aiProcess_Triangulate | aiProcess_FlipUVs | aiProcess_GenUVCoords | aiProcess_FlipWindingOrder);
 
     if (!scene || scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE || !scene->mRootNode)
     {
@@ -74,6 +74,7 @@ Mesh Model::processMesh(aiMesh* mesh, const aiScene* scene)
             mesh->mVertices[i].y,
             mesh->mVertices[i].z);
 
+
         vertex.Normal = glm::vec3(mesh->mNormals[i].x,
             mesh->mNormals[i].y,
             mesh->mNormals[i].z);
@@ -84,6 +85,7 @@ Mesh Model::processMesh(aiMesh* mesh, const aiScene* scene)
             vertex.TexCoords = glm::vec2(0.0f, 0.0f);
 
         vertices.push_back(vertex);
+
     }
     // TODO: caculate indices
     for (unsigned int i = 0; i < mesh->mNumFaces; i++)

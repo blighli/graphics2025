@@ -544,10 +544,12 @@
     <None Include="res\shaders\denoise.shader" />
     <None Include="res\shaders\encoded.shader" />
     <None Include="res\shaders\lastframe.shader" />
+    <None Include="res\shaders\model.shader" />
     <None Include="res\shaders\pathTracing.shader" />
     <None Include="res\shaders\PBR.Shader" />
     <None Include="res\shaders\rander.shader" />
     <None Include="res\shaders\RealTime.shader" />
+    <None Include="res\shaders\simpleLight.shader" />
     <None Include="res\shaders\whitted.shader" />
     <None Include="src\vendor\assimp\include\assimp\color4.inl" />
     <None Include="src\vendor\assimp\include\assimp\material.inl" />
@@ -695,7 +697,7 @@
     <None Include="src\vendor\glm\gtx\wrap.inl" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="src\HW2.cpp" />
+    <ClCompile Include="src\HW3.cpp" />
     <ClCompile Include="src\Mesh.cpp" />
     <ClCompile Include="src\BVH.cpp" />
     <ClCompile Include="src\Camera.cpp" />

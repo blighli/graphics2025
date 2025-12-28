@@ -15,7 +15,7 @@ extern const unsigned int SCR_HEIGHT = 800;
 extern bool mouse = true;
 
 //----------camera settings------------
-extern Camera camera(glm::vec3(0.0f, 0.0f, 4.0f));
+extern Camera camera(glm::vec3(0.0f, 0.0f, 0.0f));
 extern newCamera newcamera(90);
 extern float lastX = SCR_HEIGHT / 2.0f;
 extern float lastY = SCR_WIDTH / 2.0f;

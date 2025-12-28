@@ -39,6 +39,11 @@ glm::mat4 Camera::GetViewMatrix() const
 	return glm::lookAt(m_Pos, m_Pos + m_Front, m_Up);
 }
 
+glm::mat4 Camera::GetPrespective() const
+{
+	return glm::perspective(glm::radians(m_Fov), 1.0f, 0.01f, 10.0f);
+}
+
 
 void Camera::ProcessKeyboard(const Camera_Movement dir, const float delatTime)
 {
@@ -74,12 +79,13 @@ void Camera::ProcessMouseMovement(float xoffset, float yoffset, GLboolean constr
 
 void Camera::ProcessMouseScroll(float xoffset, float yoffset)
 {
-	if (m_Fov >= 1.0f && m_Fov <= 100.0f)
+	if (m_Fov >= 1.0f && m_Fov <= 90.0f)
 		m_Fov -= yoffset;
 	if (m_Fov < 1.0f)
 		m_Fov = 1.0f;
-	if (m_Fov > 100.0f)
-		m_Fov = 100.0f;
+	if (m_Fov > 90.0f)
+		m_Fov = 90.0f;
+
 }
 
 void newCamera::ProcessKeyboard(const Camera_Movement dir, const float delatTime)

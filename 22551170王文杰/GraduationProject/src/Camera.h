@@ -16,6 +16,32 @@ enum Camera_Movement
 	FORWARD, BACKWARD, LEFT, RIGHT
 };
 
+class FPSCamera
+{
+private:
+	glm::vec3 pos;
+	glm::vec3 up;
+	glm::vec3 front;
+
+	float fov;
+
+public:
+	FPSCamera(
+		glm::vec3 pos = glm::vec3(0.0f, 0.0f, 0.0f),
+		glm::vec3 up = glm::vec3(0.0f, 1.0f, 0.0f),
+		glm::vec3 front = glm::vec3(0.0f, 0.0f, -1.0f),
+		float fov = 60.0f
+	) :pos(pos), up(up), front(front), fov(fov) {
+	}
+	void ProcessKeyboard(const Camera_Movement dir, const float delatTime);
+	void ProcessMouseMovement(float xoffset, float yoffset, GLboolean constrainPitch = true);
+	void ProcessMouseScroll(float xoffset, float yoffset);
+
+	glm::mat4 getViewMatrix() const {
+		return glm::lookAt(pos, pos + front, up);
+	}
+};
+
 class Camera {
 private:
 	glm::vec3 m_Pos;
@@ -39,6 +65,7 @@ public:
 	~Camera() {}
 
 	glm::mat4 GetViewMatrix() const;
+	glm::mat4 GetPrespective() const;
 
 	inline float GetFov() const { return m_Fov; }
 	inline glm::vec3 GetPosition() const { return m_Pos; }

@@ -42,23 +42,23 @@ Mesh::Mesh(std::vector<Vertex> vertices, std::vector<unsigned int> indices, std:
 	setupMesh();
 }
 
-void Mesh::Draw(Shader shader)
+void Mesh::Draw(Shader& shader)
 {
-	unsigned int diffuseNr = 1;
-	unsigned int specularNr = 1;
+	int Nr = 1;
 
-	for (unsigned int i = 0; i < m_Textures.size(); i++)
+	for (int i = 0; i < m_Textures.size(); i++)
 	{
-		glActiveTexture(GL_TEXTURE0 + i);
+		glActiveTexture(GL_TEXTURE0 + m_Textures[i].id);
 
 		std::string number;
 		std::string name = m_Textures[i].type;
-		if (name == "texture_diffuse")
-			number = std::to_string(diffuseNr++);
-		else
-			number = std::to_string(specularNr++);
 
-		shader.SetUniform1i(("material." + name + number).c_str(), i);
+		number = std::to_string(Nr++);
+
+		shader.SetUniform1i(("material[" + std::to_string(m_Textures[i].id) + "]").c_str(), m_Textures[i].id);
+		shader.SetUniform1i("textureID", m_Textures[i].id);
+		//std::cout << number << " " << m_Textures[i].id << std::endl;
+
 		glBindTexture(GL_TEXTURE_2D, m_Textures[i].id);
 	}
 	glActiveTexture(GL_TEXTURE0);
@@ -70,6 +70,7 @@ void Mesh::Draw(Shader shader)
 
 void Mesh::encodeTriangle(glm::vec3 pos)
 {
+	return;
 	if (!triangles.empty() || !textureCoords.empty())
 	{
 		triangles.clear();

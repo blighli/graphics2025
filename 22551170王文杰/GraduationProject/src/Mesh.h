@@ -44,7 +44,7 @@ public:
 	Mesh(std::vector<Vertex> vertices, std::vector<unsigned int> indices, std::vector<MeshTexture> textures);
 	~Mesh() {}
 
-	void Draw(Shader shader);
+	void Draw(Shader& shader);
 	std::vector<Triangle_encoded> getTriangleData() { return triangles; }
 	std::vector<glm::vec2> getTextureCoords() { return textureCoords; }
 
