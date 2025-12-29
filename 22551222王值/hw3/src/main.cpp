@@ -11,6 +11,8 @@
 #include <iostream>
 #include <vector>
 #include <cmath>
+#include <fstream>
+#include <sstream>
 
 // 回调函数
 void framebuffer_size_callback(GLFWwindow* window, int width, int height);
@@ -35,6 +37,71 @@ bool firstMouse = true;
 
 float lastFrame = 0;
 float deltaTime = 0;
+
+// 轨道视角模式（按住Shift）
+bool orbitalMode = false;
+float orbitalRadius = 20.0f; // 固定球面半径
+glm::vec3 orbitalCenter(0.0f, 0.0f, 0.0f); // 星系中心
+
+// 简易OBJ加载器：仅解析 v, vt, f(v/vt/…)，输出顶点数组 [x,y,z,u,v]
+static bool loadOBJVerticesUV(const std::string& path, std::vector<float>& outVertices) {
+    std::ifstream file(path);
+    if (!file) {
+        std::cout << "Failed to open OBJ: " << path << std::endl;
+        return false;
+    }
+    std::vector<glm::vec3> positions;
+    std::vector<glm::vec2> texcoords;
+    std::string line;
+    while (std::getline(file, line)) {
+        if (line.size() < 2) continue;
+        if (line.rfind("v ", 0) == 0) {
+            std::istringstream iss(line.substr(2));
+            glm::vec3 p; iss >> p.x >> p.y >> p.z; positions.push_back(p);
+        } else if (line.rfind("vt ", 0) == 0) {
+            std::istringstream iss(line.substr(3));
+            glm::vec2 t; iss >> t.x >> t.y; texcoords.push_back(t);
+        } else if (line.rfind("f ", 0) == 0) {
+            std::istringstream iss(line.substr(2));
+            std::vector<std::pair<int,int>> face; // (v, vt)
+            std::string tok;
+            while (iss >> tok) {
+                int vi = 0, ti = 0; int ni = 0;
+                size_t p1 = tok.find('/');
+                if (p1 == std::string::npos) { // only v
+                    vi = std::stoi(tok);
+                } else {
+                    size_t p2 = tok.find('/', p1 + 1);
+                    std::string sv = tok.substr(0, p1);
+                    std::string svt = (p2 == std::string::npos) ? tok.substr(p1 + 1)
+                                                                : tok.substr(p1 + 1, p2 - p1 - 1);
+                    if (!sv.empty()) vi = std::stoi(sv);
+                    if (!svt.empty()) ti = std::stoi(svt);
+                }
+                face.emplace_back(vi, ti);
+            }
+            // 三角扇展开
+            for (size_t i = 2; i < face.size(); ++i) {
+                size_t idx[3] = {0, i - 1, i};
+                for (int k = 0; k < 3; ++k) {
+                    int vi = face[idx[k]].first;
+                    int ti = face[idx[k]].second;
+                    if (vi < 0) vi = static_cast<int>(positions.size()) + vi + 1;
+                    if (ti < 0) ti = static_cast<int>(texcoords.size()) + ti + 1;
+                    const glm::vec3& p = positions[vi - 1];
+                    glm::vec2 t = glm::vec2(0.0f);
+                    if (ti >= 1 && ti <= static_cast<int>(texcoords.size())) t = texcoords[ti - 1];
+                    outVertices.push_back(p.x);
+                    outVertices.push_back(p.y);
+                    outVertices.push_back(p.z);
+                    outVertices.push_back(t.x);
+                    outVertices.push_back(t.y);
+                }
+            }
+        }
+    }
+    return !outVertices.empty();
+}
 
 int main()
 {
@@ -102,6 +169,27 @@ int main()
     unsigned int VAO, VBO, EBO;
     bindVAO_EBO_texture(sphereVertices, sphereIndices, VAO, VBO, EBO);
 
+    // 加载椅子模型（替换地球用）
+    std::vector<float> chairVertices;
+    bool chairOk = loadOBJVerticesUV("../models/chair.obj", chairVertices);
+    unsigned int chairVAO = 0, chairVBO = 0;
+    int chairVertexCount = 0;
+    if (chairOk) {
+        chairVertexCount = static_cast<int>(chairVertices.size() / 5);
+        glGenVertexArrays(1, &chairVAO);
+        glGenBuffers(1, &chairVBO);
+        glBindVertexArray(chairVAO);
+        glBindBuffer(GL_ARRAY_BUFFER, chairVBO);
+        glBufferData(GL_ARRAY_BUFFER, chairVertices.size() * sizeof(float), chairVertices.data(), GL_STATIC_DRAW);
+        glEnableVertexAttribArray(0);
+        glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)0);
+        glEnableVertexAttribArray(1);
+        glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)(3 * sizeof(float)));
+        glBindVertexArray(0);
+    } else {
+        std::cout << "Warning: chair.obj load failed, fallback to sphere for Earth." << std::endl;
+    }
+
     // 绑定纹理
     unsigned int texture;
     loadTexture(texture, "../textures/sun.jpg");
@@ -130,11 +218,17 @@ int main()
         // view, proj矩阵
         glm::mat4 proj  = glm::mat4(1.0f);
         proj  = glm::perspective(glm::radians(camera.Zoom), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 100.0f);
+        glm::mat4 view = camera.GetViewMatrix();
+        if (orbitalMode) {
+            // 固定在球面上，视角指向中心
+            camera.Position = orbitalCenter - camera.Front * orbitalRadius;
+            view = glm::lookAt(camera.Position, orbitalCenter, camera.Up);
+        }
         
         // -----------------------------------------------------------------------
         // 绘制太阳（双星系统）
         sunShader.use();
-        sunShader.setMat4("view", camera.GetViewMatrix());
+        sunShader.setMat4("view", view);
         sunShader.setMat4("projection", proj);
 
         glm::vec3 color_sun = glm::vec3(1, 1, 1);
@@ -166,7 +260,7 @@ int main()
         // -----------------------------------------------------------------------
         // 绘制行星
         planetShader.use();
-        planetShader.setMat4("view", camera.GetViewMatrix());
+        planetShader.setMat4("view", view);
         planetShader.setMat4("projection", proj);
         planetShader.setVec3("viewPos", camera.Position);
         planetShader.setVec3("lightPosA", sunA_pos);
@@ -174,22 +268,31 @@ int main()
         planetShader.setVec3("lightColorA", color_sun);
         planetShader.setVec3("lightColorB", color_sun);
 
-        glBindTexture(GL_TEXTURE_2D, earthTexture);
-
         // 行星1号：绕太阳A公转
+        glBindTexture(GL_TEXTURE_2D, earthTexture);
         double radius_planet = 6.0;
         double speed_planet = 1.0;
+        glm::vec3 chair_offset = glm::vec3(0.0f, -0.5f, 0.0f); // 椅子模型偏移调整
         glm::vec3 planet_pos = sunA_pos + glm::vec3(
             std::cos(glfwGetTime() * speed_planet) * static_cast<float>(radius_planet),
             0.0f,
             std::sin(glfwGetTime() * speed_planet) * static_cast<float>(radius_planet)
         );
         model = glm::mat4(1.0f);
-        model = glm::translate(model, planet_pos);
+        model = glm::translate(model, planet_pos + chair_offset);
         model = glm::scale(model, glm::vec3(0.7, 0.7, 0.7));
         planetShader.setMat4("model", model);
         planetShader.setVec3("objectColor", 1, 1, 1);  // 白色
-        glDrawElements(GL_TRIANGLES, X_SEGMENTS * Y_SEGMENTS * 6, GL_UNSIGNED_INT, 0);
+        if (chairOk) {
+            glBindVertexArray(chairVAO);
+            glDrawArrays(GL_TRIANGLES, 0, chairVertexCount);
+            glBindVertexArray(0);
+        } else {
+            // 椅子加载失败则使用原球体
+            glBindVertexArray(VAO);
+            glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
+            glDrawElements(GL_TRIANGLES, X_SEGMENTS * Y_SEGMENTS * 6, GL_UNSIGNED_INT, 0);
+        }
 
         // 行星的卫星：绕行星公转
         glBindTexture(GL_TEXTURE_2D, moonTexture);
@@ -204,6 +307,9 @@ int main()
         model = glm::scale(model, glm::vec3(0.4, 0.4, 0.4));
         planetShader.setMat4("model", model);
         planetShader.setVec3("objectColor", 0.9, 0.9, 0.9);  // 白色
+        // 卫星仍使用球体模型
+        glBindVertexArray(VAO);
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
         glDrawElements(GL_TRIANGLES, X_SEGMENTS * Y_SEGMENTS * 6, GL_UNSIGNED_INT, 0);
 
         // glfw: swap buffers and poll IO events (keys pressed/released, mouse moved etc.)
@@ -213,6 +319,8 @@ int main()
     glDeleteVertexArrays(1, &VAO);
     glDeleteBuffers(1, &VBO);
     glDeleteBuffers(1, &EBO);
+    if (chairVAO) glDeleteVertexArrays(1, &chairVAO);
+    if (chairVBO) glDeleteBuffers(1, &chairVBO);
 
     // glfw: terminate, clearing all previously allocated GLFW resources.
     glfwTerminate();
@@ -222,16 +330,21 @@ int main()
 // process all input: query GLFW whether relevant keys are pressed/released this frame and react accordingly
 void processInput(GLFWwindow *window)
 {
+    // Shift 切换到球面环绕视角（按住生效）
+    orbitalMode = (glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS) ||
+                  (glfwGetKey(window, GLFW_KEY_RIGHT_SHIFT) == GLFW_PRESS);
     if(glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
         glfwSetWindowShouldClose(window, true);
-    if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
-        camera.ProcessKeyboard(FORWARD, deltaTime);
-    if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
-        camera.ProcessKeyboard(BACKWARD, deltaTime);
-    if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
-        camera.ProcessKeyboard(LEFT, deltaTime);
-    if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
-        camera.ProcessKeyboard(RIGHT, deltaTime);
+    if (!orbitalMode) {
+        if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
+            camera.ProcessKeyboard(FORWARD, deltaTime);
+        if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
+            camera.ProcessKeyboard(BACKWARD, deltaTime);
+        if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
+            camera.ProcessKeyboard(LEFT, deltaTime);
+        if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
+            camera.ProcessKeyboard(RIGHT, deltaTime);
+    }
 }
 
 // glfw: whenever the window size changed (by OS or user resize) this callback function executes
