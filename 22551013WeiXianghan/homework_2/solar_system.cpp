@@ -278,13 +278,12 @@ int main()
         lightingShader.setVec3("light.position", lightPos);
         lightingShader.setVec3("viewPos", camera.Position);
 
-        lightingShader.setVec3("light.ambient", 0.35f, 0.35f, 0.35f);
-        lightingShader.setVec3("light.diffuse", 1.00f, 1.00f, 1.00f);
-        lightingShader.setVec3("light.specular", 1.00f, 1.00f, 1.00f);
+        lightingShader.setVec3("light.ambient", 0.6f, 0.6f, 0.6f);
+        lightingShader.setVec3("light.diffuse", 2.0f, 2.0f, 2.0f);
+        lightingShader.setVec3("light.specular", 2.0f, 2.0f, 2.0f);
         lightingShader.setFloat("light.constant", 1.0f);
-        lightingShader.setFloat("light.linear", 0.09f);
-        lightingShader.setFloat("light.quadratic", 0.032f);
-        lightingShader.setFloat("material.shininess", 32.0f);
+        lightingShader.setFloat("light.linear", 0.02f);      // 线性衰减
+        lightingShader.setFloat("light.quadratic", 0.08f);  // 二次衰减
 
 
         

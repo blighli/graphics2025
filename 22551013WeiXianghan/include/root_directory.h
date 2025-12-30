@@ -1,1 +1,1 @@
-﻿const char * logl_root = "D:/Projects/graphics2025/22551013WeiXianghan/";
+﻿const char * logl_root = "D:/Projects/ClassProjects/graphics2025/22551013WeiXianghan/";

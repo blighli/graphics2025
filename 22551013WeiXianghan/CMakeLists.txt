@@ -20,7 +20,7 @@ macro(add_exe source)
 endmacro()
 
 
-add_exe(homework_1/hello_triangle.cpp)
+add_exe(homework_1/colored_triangle.cpp)
 add_exe(homework_2/solar_system.cpp)
 
 # Add stb_image.h implementation file

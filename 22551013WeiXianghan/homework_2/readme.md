@@ -35,12 +35,12 @@
 
      - git clone https://github.com/microsoft/vcpkg.git
        cd vcpkg; .\bootstrap-vcpkg.bat
-     - 将CMakePresets.json中"VCPKG_ROOT": "D:/vcpkg"改为实际的安装位置
+     - 将CMakePresets.json中"VCPKG_ROOT": "D:/bin/vcpkg"改为实际的安装位置
    - 在22551013Weixianghan目录下执行
 
      - cmake --preset=graphics2025 		#会使用vcpkg自动安装所有必要的依赖
      - cmake --build build 				#在build\Debug目录生成可执行文件
-     - ./build/Debug/solar_system.exe
+     - ./build/Debug/solar_system.exe #运行程序
 2. **操作说明**：
 
    - **摄像机移动**：
