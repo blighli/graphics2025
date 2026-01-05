@@ -212,6 +212,7 @@ __marimo__/
 
 .DS_Store
 .vs/
+Debug/*
 
 # Prerequisites
 *.d
