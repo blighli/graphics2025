@@ -12,3 +12,7 @@ HW3:模型
 可移动鼠标旋转视角，使用滚轮调整fov
 ps:如果运行时有Assimp的dll缺失报错，请将res\dll目录下的dll.rar解压后，将其中的.dll放入.exe所在文件夹
 ![HW3示例](HW3.png)
+
+final work: mmd
+解压finalwork.zip后，运行final work.exe
+可通过键盘输入控制摄像头移动
