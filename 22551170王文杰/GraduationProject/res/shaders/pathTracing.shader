@@ -461,14 +461,6 @@ Triangle getTriangle(int i) {
 	res.uv2 = texelFetch(triangles, offset + 7).xy;
 	res.uv3 = texelFetch(triangles, offset + 8).xy;
 
-	// res.uv1.x *= textureX;
-	// res.uv2.x *= textureX;
-	// res.uv3.x *= textureX;
-		 
-	// res.uv1.y *= textureY;
-	// res.uv2.y *= textureY;
-	// res.uv3.y *= textureY;
-
 	return res;
 }
 
