@@ -18,14 +18,14 @@ LFLAGS =
 OUTPUT	:= output
 
 # define source directory
-SRC		:= src
+SRC		:= src src/scene_func
 
 # define include directory
 INCLUDE	:= include
 
 # define lib directory
 LIB		:= lib
-Libraries := -lglad -lglfw3dll
+Libraries := -lglad -lglfw3dll -lassimp
 
 ifeq ($(OS),Windows_NT)
 MAIN	:= main.exe
