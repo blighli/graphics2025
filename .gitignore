@@ -220,7 +220,7 @@ __marimo__/
 *.slo
 *.lo
 *.o
-
+*.obj
 
 # Precompiled Headers
 *.gch
@@ -247,3 +247,4 @@ __marimo__/
 *.app
 
 
+!22551366_zhangyuandong/meshshader
