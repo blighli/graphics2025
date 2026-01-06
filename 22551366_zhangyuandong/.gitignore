@@ -36,7 +36,7 @@ MANIFEST
 # Installer logs
 pip-log.txt
 pip-delete-this-directory.txt
-*.png
+
 # Unit test / coverage reports
 htmlcov/
 .tox/
@@ -221,7 +221,7 @@ __marimo__/
 *.slo
 *.lo
 *.o
-*.obj
+
 
 # Precompiled Headers
 *.gch
@@ -252,4 +252,5 @@ x64/
 
 third_party/glm/cmake
 third_party/glm/.github
-meshshader/_bin
+meshshader/_bin/
+!meshshader/thirdparty/
