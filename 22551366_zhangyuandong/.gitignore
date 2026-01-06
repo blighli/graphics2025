@@ -252,3 +252,4 @@ x64/
 
 third_party/glm/cmake
 third_party/glm/.github
+meshshader/_bin/Release
