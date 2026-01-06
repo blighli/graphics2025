@@ -1,7 +1,11 @@
 {
+  "name": "graphics2025",
+  "version-string": "1.0",
   "dependencies": [
     "fmt",
     "glfw3",
-    "glad"
+    "glad",
+    "glm",
+    "assimp"
   ]
 }

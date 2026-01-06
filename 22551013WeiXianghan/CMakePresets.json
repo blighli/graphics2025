@@ -3,7 +3,7 @@
     "configurePresets": [
         {
             "name": "graphics2025",
-            "generator": "Visual Studio 17 2022",
+            "generator": "Visual Studio 18 2026",
             "binaryDir": "${sourceDir}/build",
             "architecture": {
                 "value": "x64"
@@ -13,7 +13,7 @@
                 "VCPKG_TARGET_TRIPLET": "x64-windows"
             },
             "environment": {
-                "VCPKG_ROOT": "D:/vcpkg"
+                "VCPKG_ROOT": "D:/bin/vcpkg"
             }
         }
     ]
