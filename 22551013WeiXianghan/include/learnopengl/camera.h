@@ -11,15 +11,20 @@ enum Camera_Movement {
     FORWARD,
     BACKWARD,
     LEFT,
-    RIGHT
+    RIGHT,
+    UP,
+    DOWN
 };
 
 // Default camera values
-const float YAW         = -90.0f;
-const float PITCH       =  0.0f;
-const float SPEED       =  2.5f;
-const float SENSITIVITY =  0.1f;
-const float ZOOM        =  45.0f;
+const float YAW = 0.0f;
+const float PITCH = 0.0f;
+const float SPEED = 20.0f;
+const float SENSITIVITY = 0.1f;
+const float ZOOM = 80.0f;
+const float ZOOM_RANGE = 20.0f;
+const float ZOOM_SPEED = 2.0f;
+const float STADIA = 1000.0f;
 
 
 // An abstract camera class that processes input and calculates the corresponding Euler Angles, Vectors and Matrices for use in OpenGL
@@ -65,6 +70,13 @@ public:
         return glm::lookAt(Position, Position + Front, Up);
     }
 
+
+    // added 260109 returns the projection matrix
+    glm::mat4 GetProjMatrix(float aspect)
+    {
+        return glm::perspective(glm::radians(Zoom), aspect, 0.1f, STADIA);
+    }
+
     // processes input received from any keyboard-like input system. Accepts input parameter in the form of camera defined ENUM (to abstract it from windowing systems)
     void ProcessKeyboard(Camera_Movement direction, float deltaTime)
     {
@@ -77,6 +89,10 @@ public:
             Position -= Right * velocity;
         if (direction == RIGHT)
             Position += Right * velocity;
+        if (direction == UP)
+            Position += WorldUp * velocity;
+        if (direction == DOWN)
+            Position -= WorldUp * velocity;
     }
 
     // processes input received from a mouse input system. Expects the offset value in both the x and y direction.
@@ -104,11 +120,12 @@ public:
     // processes input received from a mouse scroll-wheel event. Only requires input on the vertical wheel-axis
     void ProcessMouseScroll(float yoffset)
     {
-        Zoom -= (float)yoffset;
-        if (Zoom < 1.0f)
+        if (Zoom >= 1.0f && Zoom <= ZOOM)
+            Zoom -= yoffset;
+        if (Zoom <= 1.0f)
             Zoom = 1.0f;
-        if (Zoom > 45.0f)
-            Zoom = 45.0f;
+        if (Zoom >= ZOOM)
+            Zoom = ZOOM;
     }
 
     // Prints the current camera state to the console
@@ -123,17 +140,51 @@ public:
     }
 
      // calculates the front vector from the Camera's (updated) Euler Angles
+    // 通过相机的欧拉角计算 Front、Right、Up 向量
     void updateCameraVectors()
     {
-        // calculate the new Front vector
+        // 计算新的 Front 向量
         glm::vec3 front;
-        front.x = cos(glm::radians(Yaw)) * cos(glm::radians(Pitch));
+        front.x = -sin(glm::radians(Yaw)) * cos(glm::radians(Pitch));
         front.y = sin(glm::radians(Pitch));
-        front.z = sin(glm::radians(Yaw)) * cos(glm::radians(Pitch));
+        front.z = -cos(glm::radians(Yaw)) * cos(glm::radians(Pitch));
         Front = glm::normalize(front);
-        // also re-calculate the Right and Up vector
-        Right = glm::normalize(glm::cross(Front, WorldUp));  // normalize the vectors, because their length gets closer to 0 the more you look up or down which results in slower movement.
-        Up    = glm::normalize(glm::cross(Right, Front));
+        // 重新计算 Right 和 Up 向量
+        Right = glm::normalize(glm::cross(Front, WorldUp));
+        Up = glm::normalize(glm::cross(Right, Front));
+    }
+
+    // Sets the camera to a fixed position and orientation
+    void FixView(glm::vec3 position, float yaw)
+    {
+        Position = position;
+        Yaw = yaw;
+        Pitch = 0.0f;
+        updateCameraVectors();
+    }
+
+
+    // ---------------- add zoom in/out functions ----------------
+
+    void ZoomIn()
+    {
+        if (Zoom >= ZOOM - ZOOM_RANGE)
+            Zoom -= ZOOM_SPEED;
+    }
+
+    void ZoomOut()
+    {
+        if (Zoom <= ZOOM + ZOOM_RANGE)
+            Zoom += ZOOM_SPEED;
+    }
+
+    // Gradually recovers Zoom to default value
+    void ZoomRecover()
+    {
+        if (Zoom < ZOOM)
+            Zoom += ZOOM_SPEED / 2;
+        if (Zoom > ZOOM)
+            Zoom -= ZOOM_SPEED / 2;
     }
 
 private:

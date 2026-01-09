@@ -36,7 +36,10 @@ cmake --build build
 ./build/Debug/model_loading.exe
 ```
 
-
+运行final_project
+```
+./build/Debug/car_game.exe
+```
 
 
 注意：路径中不能有中文字符
