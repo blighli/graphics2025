@@ -1,4 +1,4 @@
-# 第二次作业 - 绘制太阳系
+# 大作业 - 绘制传送门
 使用glad，GLFW，glm。
 在hw3目录内使用make或mingw32-make命令编译，输出结果为output/main.exe。
 - 实现了放置和穿梭传送门的功能，简单的AABB轴对齐碰撞盒功能。
