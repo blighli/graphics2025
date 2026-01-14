@@ -40,6 +40,6 @@ cmake --build build
 ```
 ./build/Debug/car_game.exe
 ```
+由于final_project加载的资源较多，打开后可能需要等待半分钟以上才能加载画面。
 
-
-注意：路径中不能有中文字符
+注意：由于vcpkg的限制，路径中不能存在中文字符

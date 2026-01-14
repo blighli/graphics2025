@@ -96,6 +96,9 @@ float lastFrame = 0.0f;
 unsigned int cubemapTexture;
 unsigned int skyboxVAO, skyboxVBO;
 
+// 是否显示左上角顶视角小地图（默认开启）
+bool showMiniMap = true;
+
 // 天空盒顶点数据
 const float skyboxVertices[] = {
     // positions
@@ -239,7 +242,7 @@ int main()
             -200.0f, 200.0f,
             -200.0f, 200.0f,
             -200.0f, 200.0f);
-        // TODO lightPos跟随相机位置进行移动，使相机周围的地方总会生成影子
+    
         glm::mat4 lightView = glm::lookAt(lightPos, glm::vec3(0.0f), WORLD_UP);
         lightSpaceMatrix = lightProjection * lightView;
 
@@ -305,31 +308,32 @@ int main()
 
         // --------------
         // 顶视角小地图渲染（位于窗口左上角）
+        if (showMiniMap) {
+            const int miniWidth = SCR_WIDTH / 3;
+            const int miniHeight = SCR_HEIGHT / 3;
+            const int miniX = 0;
+            const int miniY = SCR_HEIGHT - miniHeight;
 
-        const int miniWidth = SCR_WIDTH / 3;
-        const int miniHeight = SCR_HEIGHT / 3;
-        const int miniX = 0;
-        const int miniY = SCR_HEIGHT - miniHeight;
+            glViewport(miniX, miniY, miniWidth, miniHeight);
+            glEnable(GL_SCISSOR_TEST);
+            glScissor(miniX, miniY, miniWidth, miniHeight);
+            glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-        glViewport(miniX, miniY, miniWidth, miniHeight);
-        glEnable(GL_SCISSOR_TEST);
-        glScissor(miniX, miniY, miniWidth, miniHeight);
-        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+            glm::vec3 miniMapPos = car.getMidValPosition() + glm::vec3(0.0f, 90.0f, 0.0f);
+            glm::vec3 miniMapTarget = car.getMidValPosition();
+            glm::vec3 miniMapUp(0.0f, 0.0f, -1.0f);
+            glm::mat4 miniViewMatrix = glm::lookAt(miniMapPos, miniMapTarget, miniMapUp);
+            glm::mat4 miniProjMatrix = glm::ortho(-50.0f, 50.0f, -50.0f, 50.0f, 0.1f, 200.0f);
 
-        glm::vec3 miniMapPos = car.getMidValPosition() + glm::vec3(0.0f, 90.0f, 0.0f);
-        glm::vec3 miniMapTarget = car.getMidValPosition();
-        glm::vec3 miniMapUp(0.0f, 0.0f, -1.0f);
-        glm::mat4 miniViewMatrix = glm::lookAt(miniMapPos, miniMapTarget, miniMapUp);
-        glm::mat4 miniProjMatrix = glm::ortho(-50.0f, 50.0f, -50.0f, 50.0f, 0.1f, 200.0f);
+            shader.use();
+            renderLight(shader, miniMapPos);
+            renderCarAndCamera(carModel, cameraModel, shader, miniViewMatrix, miniProjMatrix);
+            renderStopSign(stopSignModel, shader, miniViewMatrix, miniProjMatrix);
+            renderRaceTrack(raceTrackModel, shader, miniViewMatrix, miniProjMatrix);
 
-        shader.use();
-        renderLight(shader, miniMapPos);
-        renderCarAndCamera(carModel, cameraModel, shader, miniViewMatrix, miniProjMatrix);
-        renderStopSign(stopSignModel, shader, miniViewMatrix, miniProjMatrix);
-        renderRaceTrack(raceTrackModel, shader, miniViewMatrix, miniProjMatrix);
-
-        glDisable(GL_SCISSOR_TEST);
-        glViewport(0, 0, SCR_WIDTH, SCR_HEIGHT);
+            glDisable(GL_SCISSOR_TEST);
+            glViewport(0, 0, SCR_WIDTH, SCR_HEIGHT);
+        }
 
         // 交换缓冲区和调查IO事件（按下的按键,鼠标移动等）
         glfwSwapBuffers(window);
@@ -659,6 +663,11 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
         }
         string info = isPolygonMode ? "切换为线框图渲染模式" : "切换为正常渲染模式";
         std::cout << "[POLYGON_MODE]" << info << std::endl;
+    }
+    if (key == GLFW_KEY_P && action == GLFW_PRESS) {
+        showMiniMap = !showMiniMap;
+        string info = showMiniMap ? "小地图已显示" : "小地图已隐藏";
+        std::cout << "[MINIMAP] " << info << std::endl;
     }
 }
 
