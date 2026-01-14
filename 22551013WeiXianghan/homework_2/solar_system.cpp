@@ -18,7 +18,7 @@ const unsigned int SCR_WIDTH = 1000;
 const unsigned int SCR_HEIGHT = 1000;
 
 // ======================= camera =========================
-Camera camera(glm::vec3(0.0f, 50.0f, 20.0f));
+Camera camera(glm::vec3(0.0f, 20.0f, 20.0f));
 float lastX = SCR_WIDTH / 2.0f;
 float lastY = SCR_HEIGHT / 2.0f;
 bool firstMouse = true;
@@ -228,9 +228,11 @@ int main()
     // lightingShader.setInt("material.specular", 1);
 
     // 在程序开始时设置相机指向太阳
-    camera.Yaw = -90.0f; 
-    camera.Pitch = 0.0f; 
-    camera.updateCameraVectors();
+    camera.Position = glm::vec3(9.95895f, 2.74342f, 10.389f); // 设置相机位置
+    camera.Yaw = -316.801f;                                   // 设置相机 Yaw
+    camera.Pitch = -2.5501f;                                  // 设置相机 Pitch
+    camera.Zoom = 80.0f;                                      // 设置相机 Zoom
+    camera.updateCameraVectors();                             // 更新相机的方向向量
 
     // 初始化坐标轴
     setupAxis();
@@ -239,6 +241,10 @@ int main()
 
     while (!glfwWindowShouldClose(window))
     {
+        // Debug 打印当前的相机状态
+        camera.PrintState();
+
+
         // timing
         float currentFrame = (float)glfwGetTime();
         //减缓时间的流逝速度

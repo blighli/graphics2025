@@ -31,12 +31,12 @@ void setDeltaTime();
 void changeLightPosAsTime();
 void updateFixedCamera();
 
-void renderLight(Shader& shader);
-void renderCarAndCamera(Model& carModel, Model& cameraModel, Shader& shader);
+void renderLight(Shader& shader, const glm::vec3& viewPos);
+void renderCarAndCamera(Model& carModel, Model& cameraModel, Shader& shader, const glm::mat4& viewMatrix, const glm::mat4& projMatrix);
 void renderCar(Model& model, glm::mat4 modelMatrix, Shader& shader);
 void renderCamera(Model& model, glm::mat4 modelMatrix, Shader& shader);
-void renderStopSign(Model& model, Shader& shader);
-void renderRaceTrack(Model& model, Shader& shader);
+void renderStopSign(Model& model, Shader& shader, const glm::mat4& viewMatrix, const glm::mat4& projMatrix);
+void renderRaceTrack(Model& model, Shader& shader, const glm::mat4& viewMatrix, const glm::mat4& projMatrix);
 void renderSkyBox(Shader& shader);
 
 void framebuffer_size_callback(GLFWwindow* window, int width, int height);
@@ -253,9 +253,11 @@ int main()
         glBindFramebuffer(GL_FRAMEBUFFER, depthMapFBO);
         // 使用深度shader渲染生成场景
         glClear(GL_DEPTH_BUFFER_BIT);
-        renderCarAndCamera(carModel, cameraModel, depthShader);
-        renderRaceTrack(raceTrackModel, depthShader);
-        renderStopSign(stopSignModel, depthShader);
+        glm::mat4 depthPassView = glm::mat4(1.0f);
+        glm::mat4 depthPassProj = glm::mat4(1.0f);
+        renderCarAndCamera(carModel, cameraModel, depthShader, depthPassView, depthPassProj);
+        renderRaceTrack(raceTrackModel, depthShader, depthPassView, depthPassProj);
+        renderStopSign(stopSignModel, depthShader, depthPassView, depthPassProj);
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
         // 复原视口
@@ -269,7 +271,7 @@ int main()
         shader.use();
 
         // 设置光照相关属性
-        renderLight(shader);
+        renderLight(shader, camera.Position);
 
         car.UpdateDelayYaw();
         car.UpdateDelayPosition();
@@ -279,14 +281,17 @@ int main()
             updateFixedCamera();
         }
 
+        glm::mat4 mainViewMatrix = camera.GetViewMatrix();
+        glm::mat4 mainProjMatrix = camera.GetProjMatrix((float)SCR_WIDTH / (float)SCR_HEIGHT);
+
         // 使用shader渲染car和Camera（层级模型）
-        renderCarAndCamera(carModel, cameraModel, shader);
+        renderCarAndCamera(carModel, cameraModel, shader, mainViewMatrix, mainProjMatrix);
 
         // 渲染Stop牌
-        renderStopSign(stopSignModel, shader);
+        renderStopSign(stopSignModel, shader, mainViewMatrix, mainProjMatrix);
 
         // 渲染赛道
-        renderRaceTrack(raceTrackModel, shader);
+        renderRaceTrack(raceTrackModel, shader, mainViewMatrix, mainProjMatrix);
 
         // --------------
         // 最后再渲染天空盒
@@ -297,6 +302,34 @@ int main()
         renderSkyBox(skyboxShader);
         // 复原深度测试
         glDepthFunc(GL_LESS);
+
+        // --------------
+        // 顶视角小地图渲染（位于窗口左上角）
+
+        const int miniWidth = SCR_WIDTH / 3;
+        const int miniHeight = SCR_HEIGHT / 3;
+        const int miniX = 0;
+        const int miniY = SCR_HEIGHT - miniHeight;
+
+        glViewport(miniX, miniY, miniWidth, miniHeight);
+        glEnable(GL_SCISSOR_TEST);
+        glScissor(miniX, miniY, miniWidth, miniHeight);
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+        glm::vec3 miniMapPos = car.getMidValPosition() + glm::vec3(0.0f, 90.0f, 0.0f);
+        glm::vec3 miniMapTarget = car.getMidValPosition();
+        glm::vec3 miniMapUp(0.0f, 0.0f, -1.0f);
+        glm::mat4 miniViewMatrix = glm::lookAt(miniMapPos, miniMapTarget, miniMapUp);
+        glm::mat4 miniProjMatrix = glm::ortho(-50.0f, 50.0f, -50.0f, 50.0f, 0.1f, 200.0f);
+
+        shader.use();
+        renderLight(shader, miniMapPos);
+        renderCarAndCamera(carModel, cameraModel, shader, miniViewMatrix, miniProjMatrix);
+        renderStopSign(stopSignModel, shader, miniViewMatrix, miniProjMatrix);
+        renderRaceTrack(raceTrackModel, shader, miniViewMatrix, miniProjMatrix);
+
+        glDisable(GL_SCISSOR_TEST);
+        glViewport(0, 0, SCR_WIDTH, SCR_HEIGHT);
 
         // 交换缓冲区和调查IO事件（按下的按键,鼠标移动等）
         glfwSwapBuffers(window);
@@ -448,9 +481,9 @@ void updateFixedCamera()
 // ---------------------------------
 
 // 设置光照相关属性
-void renderLight(Shader& shader)
+void renderLight(Shader& shader, const glm::vec3& viewPos)
 {
-    shader.setVec3("viewPos", camera.Position);
+    shader.setVec3("viewPos", viewPos);
     shader.setVec3("lightDirection", lightDirection);
     shader.setMat4("lightSpaceMatrix", lightSpaceMatrix);
 
@@ -458,13 +491,9 @@ void renderLight(Shader& shader)
     glBindTexture(GL_TEXTURE_2D, depthMap);
 }
 
-void renderCarAndCamera(Model& carModel, Model& cameraModel, Shader& shader)
+void renderCarAndCamera(Model& carModel, Model& cameraModel, Shader& shader, const glm::mat4& viewMatrix, const glm::mat4& projMatrix)
 {
-    // 视图转换
-    glm::mat4 viewMatrix = camera.GetViewMatrix();
     shader.setMat4("view", viewMatrix);
-    // 投影转换
-    glm::mat4 projMatrix = camera.GetProjMatrix((float)SCR_WIDTH / (float)SCR_HEIGHT);
     shader.setMat4("projection", projMatrix);
 
     // -------
@@ -511,33 +540,25 @@ void renderCamera(Model& model, glm::mat4 modelMatrix, Shader& shader)
     model.Draw(shader);
 }
 
-void renderStopSign(Model& model, Shader& shader)
+void renderStopSign(Model& model, Shader& shader, const glm::mat4& viewMatrix, const glm::mat4& projMatrix)
 {
-    // 视图转换
-    glm::mat4 viewMatrix = camera.GetViewMatrix();
     shader.setMat4("view", viewMatrix);
     // 模型转换
     glm::mat4 modelMatrix = glm::mat4(1.0f);
     modelMatrix = glm::translate(modelMatrix, glm::vec3(3.0f, 1.5f, -4.0f));
     modelMatrix = glm::rotate(modelMatrix, glm::radians(-120.0f), WORLD_UP);
     shader.setMat4("model", modelMatrix);
-    // 投影转换
-    glm::mat4 projMatrix = camera.GetProjMatrix((float)SCR_WIDTH / (float)SCR_HEIGHT);
     shader.setMat4("projection", projMatrix);
 
     model.Draw(shader);
 }
 
-void renderRaceTrack(Model& model, Shader& shader)
+void renderRaceTrack(Model& model, Shader& shader, const glm::mat4& viewMatrix, const glm::mat4& projMatrix)
 {
-    // 视图转换
-    glm::mat4 viewMatrix = camera.GetViewMatrix();
     shader.setMat4("view", viewMatrix);
     // 模型转换
     glm::mat4 modelMatrix = glm::mat4(1.0f);
     shader.setMat4("model", modelMatrix);
-    // 投影转换
-    glm::mat4 projMatrix = camera.GetProjMatrix((float)SCR_WIDTH / (float)SCR_HEIGHT);
     shader.setMat4("projection", projMatrix);
 
     model.Draw(shader);
