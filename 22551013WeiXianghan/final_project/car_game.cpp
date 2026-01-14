@@ -30,6 +30,7 @@ void skyboxInit();
 void setDeltaTime();
 void changeLightPosAsTime();
 void updateFixedCamera();
+void applyCarVelocity();
 
 void renderLight(Shader& shader, const glm::vec3& viewPos);
 void renderCarAndCamera(Model& carModel, Model& cameraModel, Shader& shader, const glm::mat4& viewMatrix, const glm::mat4& projMatrix);
@@ -67,6 +68,7 @@ glm::vec3 WORLD_UP(0.0f, 1.0f, 0.0f);
 
 // 汽车
 Car car(glm::vec3(0.0f, 0.05f, 0.0f));
+float carSpeedUnits = 0.0f;
 
 // 相机
 glm::vec3 cameraPos(0.0f, 2.0f, 5.0f);
@@ -228,6 +230,9 @@ int main()
 
         // 监听按键
         handleKeyInput(window);
+
+        // 根据当前速度推进车辆位置
+        applyCarVelocity();
 
         // 渲染背景
         glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
@@ -596,7 +601,7 @@ void handleKeyInput(GLFWwindow* window)
         glfwSetWindowShouldClose(window, true);
 
     if (!isCameraFixed) {
-        // 相机 WSAD 前后左右 Space上 左Ctrl下
+        // 相机 WSAD 前后左右 SPACE上 左Ctrl下
         if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
             camera.ProcessKeyboard(FORWARD, deltaTime);
         if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
@@ -616,31 +621,11 @@ void handleKeyInput(GLFWwindow* window)
             fixedCamera.ProcessKeyboard(CAMERA_RIGHT, deltaTime);
     }
 
-    // 车车移动
-    if (glfwGetKey(window, GLFW_KEY_UP) == GLFW_PRESS) {
-        car.ProcessKeyboard(CAR_FORWARD, deltaTime);
-
-        // 只有车车动起来的时候才可以左右旋转
-        if (glfwGetKey(window, GLFW_KEY_LEFT) == GLFW_PRESS)
-            car.ProcessKeyboard(CAR_LEFT, deltaTime);
-        if (glfwGetKey(window, GLFW_KEY_RIGHT) == GLFW_PRESS)
-            car.ProcessKeyboard(CAR_RIGHT, deltaTime);
-
-        if (isCameraFixed)
-            camera.ZoomOut();
-    }
-    if (glfwGetKey(window, GLFW_KEY_DOWN) == GLFW_PRESS) {
-        car.ProcessKeyboard(CAR_BACKWARD, deltaTime);
-
-        // 同上
-        if (glfwGetKey(window, GLFW_KEY_LEFT) == GLFW_PRESS)
-            car.ProcessKeyboard(CAR_LEFT, deltaTime);
-        if (glfwGetKey(window, GLFW_KEY_RIGHT) == GLFW_PRESS)
-            car.ProcessKeyboard(CAR_RIGHT, deltaTime);
-
-        if (isCameraFixed)
-            camera.ZoomIn();
-    }
+    // 只用左右键来控制方向
+    if (glfwGetKey(window, GLFW_KEY_LEFT) == GLFW_PRESS)
+        car.ProcessKeyboard(CAR_LEFT, deltaTime);
+    if (glfwGetKey(window, GLFW_KEY_RIGHT) == GLFW_PRESS)
+        car.ProcessKeyboard(CAR_RIGHT, deltaTime);
     
     // 回调监听按键（一个按键只会触发一次事件）
     glfwSetKeyCallback(window, key_callback);
@@ -668,6 +653,18 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
         showMiniMap = !showMiniMap;
         string info = showMiniMap ? "小地图已显示" : "小地图已隐藏";
         std::cout << "[MINIMAP] " << info << std::endl;
+    }
+    if (key == GLFW_KEY_UP && action == GLFW_PRESS) {
+        carSpeedUnits += 1.0f;
+        if (isCameraFixed)
+            camera.ZoomOut();
+        std::cout << "[SPEED] " << carSpeedUnits << std::endl;
+    }
+    if (key == GLFW_KEY_DOWN && action == GLFW_PRESS) {
+        carSpeedUnits -= 1.0f;
+        if (isCameraFixed)
+            camera.ZoomIn();
+        std::cout << "[SPEED] " << carSpeedUnits << std::endl;
     }
 }
 
@@ -737,4 +734,18 @@ unsigned int loadCubemap(vector<std::string> faces)
     glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
 
     return textureID;
+}
+
+// ---------------------------------
+// 速度更新
+// ---------------------------------
+
+void applyCarVelocity()
+{
+    if (carSpeedUnits == 0.0f)
+        return;
+
+    // 使用速度单位乘以原有基础速度推进位置
+    float scaledSpeed = carSpeedUnits * car.MovementSpeed;
+    car.Position += car.Front * scaledSpeed * deltaTime;
 }
