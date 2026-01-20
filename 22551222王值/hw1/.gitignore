@@ -1,5 +1,0 @@
-include/glad
-include/GLFW
-include/KHR
-include/glm
-.vscode
