@@ -18,6 +18,9 @@ cmake --build build
 ```
 即可在build/Debug目录生成各个作业的可执行文件
 
+
+然后，在22551013WeiXianghan目录下执行：
+
 运行作业1
 ```
 ./build/Debug/colored_triangle.exe
@@ -28,7 +31,15 @@ cmake --build build
 ./build/Debug/solar_system.exe
 ```
 
+运行作业3
+```
+./build/Debug/model_loading.exe
+```
 
+运行final_project
+```
+./build/Debug/car_game.exe
+```
+由于final_project加载的资源较多，打开后可能需要等待半分钟以上才能加载画面。
 
-
-注意：路径中不能有中文字符
+注意：由于vcpkg的限制，路径中不能存在中文字符
