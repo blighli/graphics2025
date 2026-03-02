@@ -1,0 +1,54 @@
+[gd_scene load_steps=6 format=3 uid="uid://clmuye1dnwjos"]
+
+[ext_resource type="PackedScene" uid="uid://ctv4noqnryj54" path="res://scenes/ground.tscn" id="1_h1x45"]
+[ext_resource type="PackedScene" uid="uid://brapxmevstq88" path="res://scenes/snow_ball.tscn" id="2_g64jf"]
+[ext_resource type="Script" path="res://script/camera_follow.gd" id="3_apbja"]
+[ext_resource type="Script" path="res://script/trail_painter.gd" id="4_ar3jt"]
+[ext_resource type="Texture2D" uid="uid://bxqrmiqrrtrfi" path="res://brush/brush.tres" id="5_ab2xa"]
+
+[node name="Node3D" type="Node3D"]
+
+[node name="Ground" parent="." instance=ExtResource("1_h1x45")]
+transform = Transform3D(3, 0, 0, 0, 3, 0, 0, 0, 3, 0, 0, 0)
+metadata/_edit_lock_ = true
+
+[node name="Snowball" parent="." node_paths=PackedStringArray("camera_pivot") instance=ExtResource("2_g64jf")]
+transform = Transform3D(2, 0, 0, 0, 2, 0, 0, 0, 2, 0, 2.96996, 0)
+speed = 10.0
+camera_pivot = NodePath("../Camera")
+
+[node name="Camera" type="Node3D" parent="." node_paths=PackedStringArray("target")]
+script = ExtResource("3_apbja")
+target = NodePath("../Snowball")
+
+[node name="Camera3D" type="Camera3D" parent="Camera"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 3.21927, 0)
+current = true
+
+[node name="DirectionalLight3D" type="DirectionalLight3D" parent="."]
+transform = Transform3D(-0.166769, 0.492998, -0.853898, 0, 0.866025, 0.5, 0.985996, 0.0833843, -0.144426, 0, 0, 0)
+light_energy = 1.5
+shadow_enabled = true
+
+[node name="TrailPainter" type="Node2D" parent="." node_paths=PackedStringArray("ground_mesh", "snowball", "sub_viewport", "paint_canvas")]
+scale = Vector2(0.5, 0.5)
+script = ExtResource("4_ar3jt")
+ground_mesh = NodePath("../Ground/Grid")
+snowball = NodePath("../Snowball")
+sub_viewport = NodePath("SubViewportContainer/SubViewport")
+paint_canvas = NodePath("SubViewportContainer/SubViewport/PaintCanvas")
+brush_texture = ExtResource("5_ab2xa")
+brush_size = Vector2(0.5, 0.5)
+
+[node name="SubViewportContainer" type="SubViewportContainer" parent="TrailPainter"]
+offset_right = 40.0
+offset_bottom = 40.0
+
+[node name="SubViewport" type="SubViewport" parent="TrailPainter/SubViewportContainer"]
+handle_input_locally = false
+render_target_clear_mode = 1
+render_target_update_mode = 4
+
+[node name="PaintCanvas" type="Node2D" parent="TrailPainter/SubViewportContainer/SubViewport"]
+
+[editable path="Ground"]

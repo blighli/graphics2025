@@ -1,0 +1,22 @@
+[gd_scene load_steps=4 format=3 uid="uid://ctv4noqnryj54"]
+
+[ext_resource type="PackedScene" uid="uid://dxib3hoj25s51" path="res://models/ground.glb" id="1_66khn"]
+[ext_resource type="Material" uid="uid://btbiitbmvxrcw" path="res://shader_material/ground_shader_material.tres" id="2_4ruxv"]
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_e765v"]
+size = Vector3(2.13255, 1, 2.09342)
+
+[node name="ground" instance=ExtResource("1_66khn")]
+transform = Transform3D(2, 0, 0, 0, 2, 0, 0, 0, 2, 0, 0, 0)
+
+[node name="Grid" parent="." index="0"]
+material_override = ExtResource("2_4ruxv")
+surface_material_override/0 = ExtResource("2_4ruxv")
+
+[node name="StaticBody3D" type="StaticBody3D" parent="Grid" index="0"]
+visible = false
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Grid/StaticBody3D" index="0"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.62625, 0)
+visible = false
+shape = SubResource("BoxShape3D_e765v")
